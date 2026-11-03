@@ -33,7 +33,9 @@
   "ng-I-in",
   "ng-I-out",
   "ng-II-in",
-  "ng-II-out"
+  "ng-II-out",
+  "dep-a",
+  "dep-b"
  ],
  "edges": [
   {
@@ -323,6 +325,69 @@
    "speedKmh": 25,
    "approx": true,
    "track": "turn"
+  },
+  {
+   "id": "lh-turn",
+   "from": "lh-II-out",
+   "to": "lh-I-in",
+   "length": 350,
+   "speedKmh": 25,
+   "approx": true,
+   "track": "turn"
+  },
+  {
+   "id": "ks-turn",
+   "from": "ks-I-out",
+   "to": "ks-II-in",
+   "length": 350,
+   "speedKmh": 25,
+   "approx": true,
+   "track": "turn"
+  },
+  {
+   "id": "ok-turn",
+   "from": "ok-I-out",
+   "to": "ok-II-in",
+   "length": 350,
+   "speedKmh": 25,
+   "approx": true,
+   "track": "turn"
+  },
+  {
+   "id": "dep-in",
+   "from": "lh-II-out",
+   "to": "dep-a",
+   "length": 300,
+   "speedKmh": 25,
+   "approx": true,
+   "track": "depot"
+  },
+  {
+   "id": "dep-1",
+   "from": "dep-a",
+   "to": "dep-b",
+   "length": 250,
+   "speedKmh": 25,
+   "approx": true,
+   "track": "depot"
+  },
+  {
+   "id": "dep-2",
+   "from": "dep-a",
+   "to": "dep-b",
+   "length": 250,
+   "speedKmh": 25,
+   "approx": true,
+   "track": "depot"
+  },
+  {
+   "id": "dep-exit",
+   "from": "dep-b",
+   "to": "lh-I-out",
+   "length": 300,
+   "speedKmh": 25,
+   "approx": true,
+   "track": "depot"
   }
  ],
  "stations": [
@@ -446,5 +511,75 @@
     }
    ]
   }
- ]
+ ],
+ "modes": [
+  {
+   "id": "nk-ng",
+   "name": "Некрасовка — Нижегородская",
+   "west": "nk",
+   "east": "ng",
+   "turnWest": "nk-turn",
+   "turnEast": "ng-turn"
+  },
+  {
+   "id": "nk-ok",
+   "name": "Некрасовка — Окская",
+   "west": "nk",
+   "east": "ok",
+   "turnWest": "nk-turn",
+   "turnEast": "ok-turn"
+  },
+  {
+   "id": "nk-ks",
+   "name": "Некрасовка — Косино",
+   "west": "nk",
+   "east": "ks",
+   "turnWest": "nk-turn",
+   "turnEast": "ks-turn"
+  },
+  {
+   "id": "lh-ng",
+   "name": "Лухмановская — Нижегородская",
+   "west": "lh",
+   "east": "ng",
+   "turnWest": "lh-turn",
+   "turnEast": "ng-turn"
+  },
+  {
+   "id": "lh-ok",
+   "name": "Лухмановская — Окская",
+   "west": "lh",
+   "east": "ok",
+   "turnWest": "lh-turn",
+   "turnEast": "ok-turn"
+  },
+  {
+   "id": "lh-ks",
+   "name": "Лухмановская — Косино",
+   "west": "lh",
+   "east": "ks",
+   "turnWest": "lh-turn",
+   "turnEast": "ks-turn"
+  }
+ ],
+ "depot": {
+  "id": "rudnevo",
+  "name": "Депо «Руднево»",
+  "station": "lh",
+  "entry": "dep-in",
+  "exit": "dep-exit",
+  "join": "lh-ud-I",
+  "tracks": [
+   {
+    "edge": "dep-1",
+    "at": 240
+   },
+   {
+    "edge": "dep-2",
+    "at": 240
+   }
+  ],
+  "fleet": 60,
+  "approx": true
+ }
 }

@@ -17,7 +17,8 @@ export function createRng(seed: number): () => number {
 
 export type SimEvent =
   | { t: number; type: 'arrive'; train: string; station: string; edge: string; error: number }
-  | { t: number; type: 'depart'; train: string; station: string }
+  | { t: number; type: 'depart'; train: string; station: string; edge: string }
+  | { t: number; type: 'pass'; train: string; edge: string }
   | { t: number; type: 'finish'; train: string }
   | { t: number; type: 'emergency'; train: string; block: string };
 
@@ -36,7 +37,7 @@ export interface SimOptions {
   margin?: number;
 }
 
-interface Stop {
+export interface Stop {
   station: string;
   edge: string;
   /** Смещение точки остановки вдоль маршрута, м. */
@@ -54,9 +55,12 @@ export class TrainState {
   nextStop = 0;
   /** Текущее ограничение скорости, м/с (для проверок). */
   limit = 0;
-  readonly starts: number[] = [];
-  readonly stops: Stop[] = [];
+  starts: number[] = [];
+  stops: Stop[] = [];
   total = 0;
+  /** Индексы участков маршрута под головой и под хвостом. */
+  eh = 0;
+  et = 0;
   /** Блок-участки вдоль маршрута и занимаемый диапазон [lo..hi]. */
   pb: PathBlock[] = [];
   lo = 0;
@@ -69,15 +73,13 @@ export class TrainState {
 
   constructor(
     readonly id: string,
-    readonly route: string[],
+    public route: string[],
     readonly params: TrainParams,
   ) {}
 
   /** Участок, на котором находится голова. */
   headEdge(): string {
-    let idx = 0;
-    for (let i = 0; i < this.starts.length; i++) if ((this.starts[i] as number) <= this.pos) idx = i;
-    return this.route[idx] as string;
+    return this.route[this.eh] as string;
   }
 }
 
@@ -93,6 +95,12 @@ export class Sim {
   private readonly defaults: TrainParams;
   private readonly margin: number;
   readonly il: Interlocking;
+  /** Решение «можно ли отправить поезд со станции» (регулировка интервала). */
+  /** Множитель стоянки на станции (догон отставания). */
+  dwellScale: ((tr: TrainState, stop: Stop, t: number) => number) | undefined;
+  gate: ((tr: TrainState, stop: Stop, t: number) => boolean) | undefined;
+  /** Участки, вход на которые порождает событие `pass`. */
+  readonly watch = new Set<string>();
 
   constructor(
     readonly graph: Graph,
@@ -113,38 +121,85 @@ export class Sim {
     return !!first && !this.il.isOccupied(first.block.id);
   }
 
-  /**
-   * Добавить поезд на маршрут `route` (список участков). Голова стоит
-   * в первой точке остановки первого участка и начинает со стоянки.
-   */
-  addTrain(id: string, route: string[], params: TrainParams = this.defaults): TrainState {
-    const tr = new TrainState(id, route, params);
+  /** Пересчитать накопленные смещения, остановки и блок-участки маршрута. */
+  private build(tr: TrainState): void {
+    tr.starts = [];
     let acc = 0;
-    for (const eid of route) {
+    for (const eid of tr.route) {
       tr.starts.push(acc);
       acc += this.graph.edge(eid).length;
     }
     tr.total = acc;
-    for (const st of this.graph.stations) {
-      for (const stop of st.stops) {
-        const i = route.indexOf(stop.edge);
-        if (i >= 0) tr.stops.push({ station: st.id, edge: stop.edge, s: (tr.starts[i] as number) + stop.at });
+    tr.stops = [];
+    for (let i = 0; i < tr.route.length; i++) {
+      const eid = tr.route[i] as string;
+      for (const st of this.graph.stations) {
+        for (const stop of st.stops) {
+          if (stop.edge === eid) tr.stops.push({ station: st.id, edge: eid, s: (tr.starts[i] as number) + stop.at });
+        }
       }
     }
     tr.stops.sort((a, b) => a.s - b.s);
-    const initial = tr.stops.find((s) => s.edge === route[0]);
-    if (!initial) throw new Error(`Маршрут ${id} не начинается на станции`);
-    tr.pos = initial.s;
-    tr.nextStop = tr.stops.indexOf(initial) + 1;
+    tr.pb = this.il.pathBlocks(tr.route);
+  }
+
+  /**
+   * Сменить маршрут поезда на ходу. Пройденная часть (до участка под головой включительно)
+   * должна совпадать со старой.
+   */
+  setRoute(tr: TrainState, route: string[]): void {
+    for (let i = 0; i <= tr.eh; i++) {
+      if (route[i] !== tr.route[i]) throw new Error(`Маршрут ${tr.id}: изменена пройденная часть`);
+    }
+    tr.route = route;
+    this.build(tr);
+    tr.nextStop = tr.stops.filter((s) => s.s <= tr.pos + 0.5).length;
+  }
+
+  /**
+   * Добавить поезд на маршрут `route` (список участков). Без `startAt` голова стоит
+   * в первой точке остановки первого участка и начинает со стоянки; с `startAt` —
+   * на указанном смещении первого участка (депо, перегон).
+   */
+  addTrain(id: string, route: string[], params: TrainParams = this.defaults, startAt?: number): TrainState {
+    const tr = new TrainState(id, [...route], params);
+    this.build(tr);
+    if (startAt !== undefined) {
+      tr.pos = startAt;
+      tr.nextStop = tr.stops.filter((s) => s.s <= tr.pos + 0.5).length;
+    } else {
+      const initial = tr.stops.find((s) => s.edge === route[0]);
+      if (!initial) throw new Error(`Маршрут ${id} не начинается на станции`);
+      tr.pos = initial.s;
+      tr.nextStop = tr.stops.indexOf(initial) + 1;
+    }
     tr.dwellLeft = this.dwellTime();
     tr.limit = this.graph.edge(route[0] as string).limit;
-    tr.pb = this.il.pathBlocks(route);
     const tail = Math.max(0, tr.pos - params.lengthM);
     tr.lo = tr.pb.findIndex((b) => b.s1 > tail);
     for (let i = 0; i < tr.pb.length; i++) if ((tr.pb[i] as PathBlock).s0 <= tr.pos) tr.hi = i;
     for (let i = tr.lo; i <= tr.hi; i++) this.il.occupy((tr.pb[i] as PathBlock).block.id, id);
+    this.advanceEdges(tr);
     this.trains.push(tr);
     return tr;
+  }
+
+  /** Убрать завершившие поезда из списка. */
+  prune(): TrainState[] {
+    const gone = this.trains.filter((t) => t.phase === 'done');
+    if (gone.length > 0) {
+      const keep = this.trains.filter((t) => t.phase !== 'done');
+      this.trains.length = 0;
+      this.trains.push(...keep);
+    }
+    return gone;
+  }
+
+  private advanceEdges(tr: TrainState): void {
+    const n = tr.route.length;
+    while (tr.eh + 1 < n && (tr.starts[tr.eh + 1] as number) <= tr.pos) tr.eh++;
+    const tail = tr.pos - tr.params.lengthM;
+    while (tr.et < tr.eh && (tr.starts[tr.et + 1] as number) <= tail) tr.et++;
   }
 
   private dwellTime(): number {
@@ -153,14 +208,8 @@ export class Sim {
 
   /** Ограничение для тела поезда: минимум по участкам под составом. */
   private bodyLimit(tr: TrainState): number {
-    const tail = tr.pos - tr.params.lengthM;
     let lim = Infinity;
-    for (let i = 0; i < tr.route.length; i++) {
-      const s0 = tr.starts[i] as number;
-      const e = this.graph.edge(tr.route[i] as string);
-      if (s0 > tr.pos) break;
-      if (s0 + e.length >= tail) lim = Math.min(lim, e.limit);
-    }
+    for (let i = tr.et; i <= tr.eh; i++) lim = Math.min(lim, this.graph.edge(tr.route[i] as string).limit);
     return lim;
   }
 
@@ -183,6 +232,7 @@ export class Sim {
       tr.lo = tr.hi + 1;
     } else {
       this.updateOccupancy(tr);
+      this.advanceEdges(tr);
     }
   }
 
@@ -190,7 +240,9 @@ export class Sim {
     const pb = tr.pb;
     while (tr.hi + 1 < pb.length && (pb[tr.hi + 1] as PathBlock).s0 <= tr.pos) {
       tr.hi++;
-      this.il.occupy((pb[tr.hi] as PathBlock).block.id, tr.id);
+      const nb = (pb[tr.hi] as PathBlock).block;
+      this.il.occupy(nb.id, tr.id);
+      if (nb.index === 0 && this.watch.has(nb.edge)) this.events.push({ t: this.t, type: 'pass', train: tr.id, edge: nb.edge });
     }
     const tail = tr.pos - tr.params.lengthM;
     while (tr.lo < tr.hi && (pb[tr.lo] as PathBlock).s1 <= tail) {
@@ -205,14 +257,13 @@ export class Sim {
     if (this.il.isOccupied(pb.block.id, tr.id)) return true;
     if (!pb.block.controlled || this.il.lockedBy(pb.block.id) === tr.id) return false;
     if (pb.s0 - tr.pos > 700) return true;
-    // Автомат ставит маршрут от этого светофора до следующего маршрутного.
-    const ids: string[] = [];
-    for (let j = k; j < tr.pb.length && ids.length < 4; j++) {
-      const b = (tr.pb[j] as PathBlock).block;
-      if (j > k && b.controlled) break;
-      ids.push(b.id);
-    }
-    return !this.il.setRoute(`${tr.id}@${pb.block.id}`, ids, tr.id).ok;
+    // Не резервируем стрелку заранее, если до неё ещё остановка: иначе замок висит всю стоянку.
+    const stop = tr.stops[tr.nextStop];
+    if (stop && stop.s < pb.s0 - 1) return true;
+    // Автомат замыкает маршрут через светофор: достаточно первого блок-участка за ним
+    // (стрелка замыкается на его входе, дальше поезд защищён занятостью).
+    const ids = [pb.block.id];
+    return !this.il.setRoute(`${tr.id}@${Math.round(pb.s0)}`, ids, tr.id).ok;
   }
 
   private stepTrainInner(tr: TrainState, dt: number): void {
@@ -225,9 +276,13 @@ export class Sim {
         this.events.push({ t: this.t, type: 'finish', train: tr.id });
         return;
       }
-      tr.phase = 'run';
       const prev = tr.stops[tr.nextStop - 1];
-      if (prev) this.events.push({ t: this.t, type: 'depart', train: tr.id, station: prev.station });
+      if (prev && this.gate && !this.gate(tr, prev, this.t)) {
+        tr.dwellLeft = 0;
+        return;
+      }
+      tr.phase = 'run';
+      if (prev) this.events.push({ t: this.t, type: 'depart', train: tr.id, station: prev.station, edge: prev.edge });
     }
 
     // Ограничение под составом сейчас.
@@ -235,9 +290,9 @@ export class Sim {
     let allowed = tr.limit;
     const brake = p.serviceDecel * 0.85; // запас на дискретизацию
     // Ограничения впереди (с учётом длины состава: новое ограничение действует, пока хвост не съехал).
-    for (let i = 0; i < tr.route.length; i++) {
+    for (let i = tr.eh + 1; i < tr.route.length; i++) {
       const s0 = tr.starts[i] as number;
-      if (s0 <= tr.pos) continue;
+      if (s0 - tr.pos > 600) break;
       const lim = this.graph.edge(tr.route[i] as string).limit;
       allowed = Math.min(allowed, speedForDistance(s0 - tr.pos, lim, brake));
     }
@@ -295,7 +350,7 @@ export class Sim {
       if (stop) {
         tr.nextStop += 1;
         tr.phase = 'dwell';
-        tr.dwellLeft = this.dwellTime();
+        tr.dwellLeft = this.dwellTime() * (this.dwellScale ? this.dwellScale(tr, stop, this.t) : 1);
         this.events.push({ t: this.t, type: 'arrive', train: tr.id, station: stop.station, edge: stop.edge, error });
       } else {
         tr.phase = 'done';
