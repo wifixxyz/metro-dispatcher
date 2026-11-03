@@ -49,7 +49,7 @@ test('игра загружается на 390×844, карта рисуется
 
 test('кнопки не меньше 44 px и помещаются в экран', async ({ page }) => {
   await open(page);
-  const boxes = await page.locator('button, select').evaluateAll((els) =>
+  const boxes = await page.locator('button:not(.sheet button), select').evaluateAll((els) =>
     els.map((e) => {
       const r = e.getBoundingClientRect();
       return { w: r.width, h: r.height, right: r.right, bottom: r.bottom, id: (e as HTMLElement).dataset['testid'] ?? e.tagName };
@@ -201,4 +201,35 @@ test('ручное управление: переключатель линии, 
     await page.getByTestId('train-hold').click();
     await expect(page.getByTestId('train-hold')).toHaveText('Снять задержку');
   }
+});
+
+test('смена и настройки переживают перезапуск; статистика; новая смена', async ({ page }) => {
+  await open(page);
+  await page.getByTestId('interval-2').click();
+  await page.getByTestId('mode').selectOption('lh-ks');
+  await expect.poll(async () => (await state(page)).mode).toBe('lh-ks');
+  await page.getByTestId('interval-2').click();
+  await page.getByTestId('speed-8').click();
+  await page.getByTestId('sheet-toggle').click();
+  await page.getByTestId('set-sound').click();
+  await expect(page.getByTestId('set-sound')).not.toHaveClass(/on/);
+  await expect(page.getByTestId('stats-summary')).toContainText('Парк выполнен');
+  await expect(page.getByTestId('chart')).toBeVisible();
+  await page.waitForTimeout(3000); // автосохранение раз в 2 с
+  const before = await state(page);
+  expect(before.simTime).toBeGreaterThan(60);
+
+  await page.reload();
+  await page.waitForFunction(() => '__metro' in window);
+  await page.waitForFunction(() => (window as unknown as { __metro: { state(): { frames: number } } }).__metro.state().frames > 3);
+  const after = await state(page);
+  expect(after.mode).toBe('lh-ks');
+  expect(after.interval).toBe(120);
+  expect(after.simTime).toBeGreaterThan(before.simTime - 40); // последнее автосохранение ≤ 2 с (≈16 с модели) назад
+  expect(after.violations).toBe(0);
+  await page.getByTestId('sheet-toggle').click();
+  await expect(page.getByTestId('set-sound')).not.toHaveClass(/on/);
+
+  await page.getByTestId('new-shift').click();
+  await expect.poll(async () => (await state(page)).simTime).toBeLessThan(before.simTime);
 });

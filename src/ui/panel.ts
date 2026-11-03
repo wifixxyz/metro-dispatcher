@@ -1,9 +1,20 @@
 import { INTERVALS, SPEEDS, formatClock, type Game } from '../game';
+import type { Settings } from '../storage/save';
 
 export interface PanelHandlers {
   onMode(id: string): void;
   onZoom(kind: 'in' | 'out' | 'fit'): void;
+  onSettings(s: Settings): void;
+  onNewShift(): void;
 }
+
+const PALETTE = ['#de64a1', '#5ad19a', '#f2c94c', '#56b6f7', '#ff9f43', '#b48cf2', '#9bdc5a', '#ff6b6b'];
+const NS = 'http://www.w3.org/2000/svg';
+
+const mmss = (sec: number): string => {
+  const s = Math.round(sec);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+};
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -44,13 +55,19 @@ export class Panel {
   private readonly modeSelect = el('select', { className: 'mode' });
   private lastLog = -1;
   private lastText = '';
+  private lastStats = '';
+  private readonly statsBox = el('div', { className: 'stats' });
+  private settings: Settings;
+  private readonly setBtns = new Map<keyof Settings, HTMLButtonElement>();
 
   constructor(
     root: HTMLElement,
     game: Game,
-    handlers: PanelHandlers,
+    private readonly handlers: PanelHandlers,
+    settings: Settings,
   ) {
     this.game = game;
+    this.settings = { ...settings };
     const top = el('header', { className: 'top' });
     const title = el('h1', { textContent: 'Метро · Диспетчер' });
     this.modeSelect.dataset['testid'] = 'mode';
@@ -95,7 +112,33 @@ export class Panel {
     panel.append(stat, ivRow, spRow);
 
     this.sheet.dataset['testid'] = 'sheet';
-    this.sheet.append(el('h2', { textContent: 'Диагностика и журнал' }), this.diag, this.logBox);
+    const setRow = el('div', { className: 'row' });
+    const names: [keyof Settings, string, string][] = [
+      ['sound', 'Звук', 'set-sound'],
+      ['ambient', 'Фон зала', 'set-ambient'],
+      ['haptics', 'Вибрация', 'set-haptics'],
+    ];
+    for (const [key, label, id] of names) {
+      const b = button(label, id, () => {
+        this.settings[key] = !this.settings[key];
+        this.paintSettings();
+        this.handlers.onSettings({ ...this.settings });
+      });
+      this.setBtns.set(key, b);
+      setRow.append(b);
+    }
+    const newBtn = button('Новая смена', 'new-shift', () => this.handlers.onNewShift());
+    this.paintSettings();
+    this.sheet.append(
+      el('h2', { textContent: 'Настройки' }),
+      setRow,
+      el('div', { className: 'row' }, newBtn),
+      el('h2', { textContent: 'Статистика' }),
+      this.statsBox,
+      el('h2', { textContent: 'Диагностика и журнал' }),
+      this.diag,
+      this.logBox,
+    );
 
     root.append(top, zoom, this.toast, this.card, panel, this.sheet);
   }
@@ -123,7 +166,68 @@ export class Panel {
     this.card.classList.remove('show');
   }
 
+  private paintSettings(): void {
+    for (const [k, b] of this.setBtns) b.classList.toggle('on', this.settings[k]);
+  }
+
+  private renderStats(): void {
+    const g = this.game;
+    const st = g.stats;
+    const key = `${st.arrivals}|${st.failures.length}|${g.interventions}|${g.interval}`;
+    if (key === this.lastStats) return;
+    this.lastStats = key;
+    const rows = st.stations();
+    const tNow = g.sim.t;
+    const span = 40 * 60;
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 300 110');
+    svg.setAttribute('class', 'chart');
+    svg.dataset['testid'] = 'chart';
+    const yMax = g.interval * 2;
+    const ref = document.createElementNS(NS, 'line');
+    const yRef = 105 - (g.interval / yMax) * 100;
+    ref.setAttribute('x1', '0');
+    ref.setAttribute('x2', '300');
+    ref.setAttribute('y1', String(yRef));
+    ref.setAttribute('y2', String(yRef));
+    ref.setAttribute('stroke', '#4a5368');
+    ref.setAttribute('stroke-dasharray', '3 3');
+    svg.append(ref);
+    rows.forEach((r, i) => {
+      const pts = r.points.filter((p) => p.t >= tNow - span);
+      if (pts.length < 2) return;
+      const poly = document.createElementNS(NS, 'polyline');
+      poly.setAttribute('fill', 'none');
+      poly.setAttribute('stroke', PALETTE[i % PALETTE.length] as string);
+      poly.setAttribute('stroke-width', '1.2');
+      poly.setAttribute(
+        'points',
+        pts.map((p) => `${((p.t - (tNow - span)) / span) * 300},${105 - Math.min(1, p.dt / yMax) * 100}`).join(' '),
+      );
+      svg.append(poly);
+    });
+    const summary = el('div', {
+      className: 'sum',
+      textContent:
+        `Парк выполнен на ${Math.round(st.fleetFulfilment() * 100)}% · задержек ${st.delays} из ${st.arrivals} прибытий · ` +
+        `вмешательств ${g.interventions} · сбоев ${st.failures.length}`,
+    });
+    summary.dataset['testid'] = 'stats-summary';
+    const table = el('div', { className: 'tbl' });
+    rows.forEach((r, i) => {
+      if (r.count === 0) return;
+      const line = el('div', { className: 'tr' });
+      const dot = el('span', { className: 'dot' });
+      dot.style.background = PALETTE[i % PALETTE.length] as string;
+      line.append(dot, el('span', { className: 'nm', textContent: r.name }), el('span', { textContent: `${mmss(r.mean)} (${mmss(r.min)}–${mmss(r.max)})` }));
+      table.append(line);
+    });
+    const fails = st.failures.slice(-5).reverse().map((f) => el('div', { className: 'line warn', textContent: `${formatClock(f.t)}  ${f.text}` }));
+    this.statsBox.replaceChildren(summary, svg, table, ...(fails.length ? [el('div', { className: 'lbl', textContent: 'Журнал сбоев' }), ...fails] : []));
+  }
+
   setGame(game: Game): void {
+    this.lastStats = '';
     this.game = game;
     this.modeSelect.value = game.mode;
     this.lastLog = -1;
@@ -148,6 +252,7 @@ export class Panel {
     this.pauseBtn.setAttribute('aria-label', g.paused ? 'Продолжить' : 'Пауза');
 
     if (this.sheet.classList.contains('open')) {
+      this.renderStats();
       this.diag.textContent =
         `Составов на линии: ${g.sim.trains.length} · в депо: ${st.inDepot} · ` +
         `занятых блоков: ${g.sim.il.occupiedBlocks().length} · маршрутов: ${g.sim.il.routes.size} · ` +

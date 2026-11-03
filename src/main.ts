@@ -2,7 +2,10 @@ import './style.css';
 import { Application } from 'pixi.js';
 import { Viewport } from 'pixi-viewport';
 import { registerSW } from 'virtual:pwa-register';
+import { Sound } from './audio/sound';
 import { Game } from './game';
+import { Haptics } from './haptics/haptics';
+import { Storage } from './storage/save';
 import { NEKRASOVSKAYA } from './lines';
 import { buildLayout } from './render/layout';
 import { Scene } from './render/scene';
@@ -27,7 +30,53 @@ async function main(): Promise<void> {
   mapEl.id = 'map';
   root.append(mapEl);
 
-  const game = new Game(NEKRASOVSKAYA, { mode: 'nk-ng', interval: 180 });
+  const storage = new Storage();
+  const settings = await storage.loadSettings();
+  const sound = new Sound();
+  sound.enabled = settings.sound;
+  sound.setAmbient(settings.ambient);
+  const haptics = new Haptics();
+  haptics.enabled = settings.haptics;
+  // Звук разрешён браузером только после жеста.
+  window.addEventListener('pointerdown', () => sound.unlock(), { capture: true });
+
+  // Продолжение смены после перезапуска: проигрываем сохранённые действия на тех же шагах.
+  let game: Game;
+  const save = await storage.loadShift();
+  const known = save && NEKRASOVSKAYA.modes?.some((m) => m.id === save.mode);
+  if (save && known) {
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.dataset['testid'] = 'restoring';
+    root.append(overlay);
+    try {
+      game = await Game.restore(NEKRASOVSKAYA, save, (f) => {
+        overlay.textContent = `Восстановление смены… ${Math.round(f * 100)}%`;
+      });
+    } catch {
+      await storage.clearShift();
+      game = new Game(NEKRASOVSKAYA, { mode: 'nk-ng', interval: 180 });
+    }
+    overlay.remove();
+  } else {
+    game = new Game(NEKRASOVSKAYA, { mode: 'nk-ng', interval: 180 });
+  }
+  game.onSignal = (s) => {
+    if (s.kind === 'switch') sound.play('click', s.player ? 1 : game.speed <= 2 ? 0.3 : 0);
+    else if (s.kind === 'route') sound.play('route');
+    else if (s.kind === 'alarm') {
+      sound.play('alarm');
+      haptics.alarm();
+    } else if (s.kind === 'action') haptics.tap();
+  };
+  const saveNow = (): void => {
+    void storage.saveShift(game.snapshot()).catch(() => undefined);
+  };
+  setInterval(saveNow, 2000);
+  window.addEventListener('pagehide', saveNow);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveNow();
+  });
   const layout = buildLayout(NEKRASOVSKAYA, game.graph);
   const margin = 80;
   const world = {
@@ -72,13 +121,26 @@ async function main(): Promise<void> {
     onMode(id) {
       game.reset(id);
       scene.setGame(game);
+      saveNow();
       panel.setGame(game);
+    },
+    onSettings(st) {
+      sound.setEnabled(st.sound);
+      sound.setAmbient(st.ambient);
+      haptics.enabled = st.haptics;
+      void storage.saveSettings(st);
+    },
+    onNewShift() {
+      game.newShift();
+      scene.setGame(game);
+      panel.setGame(game);
+      saveNow();
     },
     onZoom(kind) {
       if (kind === 'fit') fit();
       else viewport.setZoom(viewport.scale.x * (kind === 'in' ? 1.5 : 1 / 1.5), true);
     },
-  });
+  }, settings);
 
   const controller = new Controller(game, scene, panel);
   viewport.on('clicked', (e) => controller.tap(scene.hitTest(e.world.x, e.world.y)));
