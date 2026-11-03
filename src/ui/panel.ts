@@ -29,7 +29,12 @@ export class Panel {
   private game: Game;
   private readonly clock = el('span', { className: 'clock' });
   private readonly status = el('span', { className: 'status' });
-  private readonly auto = el('span', { className: 'auto', textContent: 'Автомат: вкл' });
+  private readonly autoBtn = button('Автомат: вкл', 'auto-toggle', () => this.onAuto?.());
+  private readonly toast = el('div', { className: 'toast' });
+  private readonly card = el('div', { className: 'card' });
+  private toastTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Обработчик переключателя авто/ручной для всей линии. */
+  onAuto: (() => void) | undefined;
   private readonly intervalBtns = new Map<number, HTMLButtonElement>();
   private readonly speedBtns = new Map<number, HTMLButtonElement>();
   private pauseBtn!: HTMLButtonElement;
@@ -65,7 +70,10 @@ export class Panel {
     const panel = el('section', { className: 'panel' });
     this.status.dataset['testid'] = 'status';
     this.clock.dataset['testid'] = 'clock';
-    const stat = el('div', { className: 'row stat' }, this.clock, this.status, this.auto);
+    this.toast.dataset['testid'] = 'toast';
+    this.card.dataset['testid'] = 'card';
+    this.autoBtn.classList.add('wide');
+    const stat = el('div', { className: 'row stat' }, this.clock, this.status, this.autoBtn);
 
     const ivRow = el('div', { className: 'row' }, el('span', { className: 'lbl', textContent: 'Интервал' }));
     for (const iv of INTERVALS) {
@@ -89,7 +97,30 @@ export class Panel {
     this.sheet.dataset['testid'] = 'sheet';
     this.sheet.append(el('h2', { textContent: 'Диагностика и журнал' }), this.diag, this.logBox);
 
-    root.append(top, zoom, panel, this.sheet);
+    root.append(top, zoom, this.toast, this.card, panel, this.sheet);
+  }
+
+  /** Короткое сообщение (в том числе объяснение отказа). */
+  showToast(text: string, bad = false): void {
+    this.toast.textContent = text;
+    this.toast.classList.toggle('bad', bad);
+    this.toast.classList.add('show');
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => this.toast.classList.remove('show'), 3500);
+  }
+
+  /** Карточка объекта: заголовок и кнопки действий. */
+  showCard(title: string, actions: { label: string; testId: string; run: () => void }[]): void {
+    const close = button('×', 'card-close', () => this.hideCard(), 'Закрыть');
+    const head = el('div', { className: 'head' }, el('span', { textContent: title }), close);
+    const row = el('div', { className: 'row' });
+    for (const a of actions) row.append(button(a.label, a.testId, a.run));
+    this.card.replaceChildren(head, row);
+    this.card.classList.add('show');
+  }
+
+  hideCard(): void {
+    this.card.classList.remove('show');
   }
 
   setGame(game: Game): void {
@@ -102,12 +133,14 @@ export class Panel {
   update(): void {
     const g = this.game;
     const st = g.status();
-    const text = `${formatClock(g.sim.t)}|${st.active}|${st.required}|${st.missing}|${g.paused}|${g.speed}|${g.interval}`;
+    const text = `${g.manualLine}|${formatClock(g.sim.t)}|${st.active}|${st.required}|${st.missing}|${g.paused}|${g.speed}|${g.interval}`;
     if (text === this.lastText) return;
     this.lastText = text;
     this.clock.textContent = formatClock(g.sim.t);
     this.status.textContent = `в работе ${st.active} · расчётно ${st.required} · не хватает ${st.missing}`;
     this.status.classList.toggle('bad', st.missing > 0);
+    this.autoBtn.textContent = g.manualLine ? 'Ручной режим' : 'Автомат: вкл';
+    this.autoBtn.classList.toggle('on', g.manualLine);
     for (const [iv, b] of this.intervalBtns) b.classList.toggle('on', iv === g.interval);
     for (const [sp, b] of this.speedBtns) b.classList.toggle('on', sp === g.speed && !g.paused);
     this.pauseBtn.classList.toggle('on', g.paused);

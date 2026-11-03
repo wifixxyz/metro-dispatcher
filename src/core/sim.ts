@@ -70,6 +70,10 @@ export class TrainState {
   /** Время подряд без движения на перегоне, с. */
   waitT = 0;
   emergency = false;
+  /** Игрок задержал поезд на станции. */
+  hold = false;
+  /** Игрок велел отправить поезд сейчас (без ожидания стоянки и удержания). */
+  send = false;
 
   constructor(
     readonly id: string,
@@ -101,6 +105,8 @@ export class Sim {
   gate: ((tr: TrainState, stop: Stop, t: number) => boolean) | undefined;
   /** Участки, вход на которые порождает событие `pass`. */
   readonly watch = new Set<string>();
+  /** Узлы, где маршруты ставит только игрок. */
+  readonly manualNodes = new Set<string>();
 
   constructor(
     readonly graph: Graph,
@@ -255,7 +261,8 @@ export class Sim {
   private isBlocked(tr: TrainState, k: number): boolean {
     const pb = tr.pb[k] as PathBlock;
     if (this.il.isOccupied(pb.block.id, tr.id)) return true;
-    if (!pb.block.controlled || this.il.lockedBy(pb.block.id) === tr.id) return false;
+    if (!pb.block.controlled || this.il.permits(pb.block.id, tr.id)) return false;
+    if (this.manualNodes.has(pb.block.fromNode)) return true;
     if (pb.s0 - tr.pos > 700) return true;
     // Не резервируем стрелку заранее, если до неё ещё остановка: иначе замок висит всю стоянку.
     const stop = tr.stops[tr.nextStop];
@@ -269,19 +276,22 @@ export class Sim {
   private stepTrainInner(tr: TrainState, dt: number): void {
     const p = tr.params;
     if (tr.phase === 'dwell') {
-      tr.dwellLeft -= dt;
+      if (tr.send) tr.dwellLeft = 0;
+      else tr.dwellLeft -= dt;
       if (tr.dwellLeft > 0) return;
+      if (tr.hold) return;
       if (tr.nextStop > tr.stops.length) {
         tr.phase = 'done';
         this.events.push({ t: this.t, type: 'finish', train: tr.id });
         return;
       }
       const prev = tr.stops[tr.nextStop - 1];
-      if (prev && this.gate && !this.gate(tr, prev, this.t)) {
+      if (prev && !tr.send && this.gate && !this.gate(tr, prev, this.t)) {
         tr.dwellLeft = 0;
         return;
       }
       tr.phase = 'run';
+      tr.send = false;
       if (prev) this.events.push({ t: this.t, type: 'depart', train: tr.id, station: prev.station, edge: prev.edge });
     }
 

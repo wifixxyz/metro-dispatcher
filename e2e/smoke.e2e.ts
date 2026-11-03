@@ -132,3 +132,73 @@ test('PWA: манифест валиден, иконки доступны', asyn
     expect(r.headers()['content-type']).toContain('image/png');
   }
 });
+
+type Pt = { x: number; y: number } | undefined;
+const call = <T>(page: Page, fn: string, arg?: string): Promise<T> =>
+  page.evaluate(([f, a]) => (window as unknown as Record<string, Record<string, (x?: string) => unknown>>)['__metro']![f!]!(a) as never, [fn, arg] as const);
+
+test('ручное управление: переключатель линии, маршрут по касаниям, карточки', async ({ page }) => {
+  await open(page);
+  await page.getByTestId('pause').click();
+
+  // Переключатель авто/ручной для всей линии.
+  await page.getByTestId('auto-toggle').click();
+  await expect(page.getByTestId('auto-toggle')).toHaveText('Ручной режим');
+  await expect(page.getByTestId('toast')).toContainText('ручном режиме');
+  expect(((await state(page)) as unknown as { manualLine: boolean }).manualLine).toBe(true);
+  await page.getByTestId('auto-toggle').click();
+  await expect(page.getByTestId('auto-toggle')).toHaveText('Автомат: вкл');
+
+  // Маршрут: коснуться начального, затем конечного светофора.
+  await page.evaluate(() => (window as never as { __metro: { focus(n: string, s: number): void } }).__metro.focus('lh-I-out', 1.6));
+  const a = await call<Pt>(page, 'signalScreen', 'lh-ud-I#0');
+  const b = await call<Pt>(page, 'signalScreen', 'lh-ud-I#1');
+  expect(a && b).toBeTruthy();
+  await page.touchscreen.tap(a!.x, a!.y);
+  await expect.poll(async () => ((await state(page)) as unknown as { selected: string | null }).selected).toBe('lh-ud-I#0');
+  await page.touchscreen.tap(b!.x, b!.y);
+  await expect.poll(async () => ((await state(page)) as unknown as { selected: string | null }).selected).toBeNull();
+  await expect(page.getByTestId('toast')).toHaveClass(/show/);
+  const toast = (await page.getByTestId('toast').textContent()) ?? '';
+  expect(toast.length).toBeGreaterThan(5); // «Маршрут установлен» либо причина отказа
+  const routes = ((await state(page)) as unknown as { routes: number }).routes;
+  if (toast.includes('Маршрут установлен')) {
+    expect(routes).toBeGreaterThan(0);
+    await page.touchscreen.tap(a!.x, a!.y);
+    await expect(page.getByTestId('route-cancel')).toBeVisible();
+    await page.getByTestId('route-cancel').click();
+  }
+
+  // Стрелка: карточка и перевод.
+  // Берём первую стрелку, у которой в точке касания нет поезда (иначе откроется карточка поезда).
+  let opened = false;
+  for (const node of ['ks-I-out', 'ok-I-out', 'ks-II-in', 'ok-II-in', 'lh-II-out']) {
+    await page.evaluate((n) => (window as never as { __metro: { focus(n: string, s: number): void } }).__metro.focus(n, 1.6), node);
+    const p = await call<Pt>(page, 'switchScreen', node);
+    await page.touchscreen.tap(p!.x, p!.y);
+    if (await page.getByTestId('throw').isVisible()) {
+      opened = true;
+      break;
+    }
+    if (await page.getByTestId('card-close').isVisible()) await page.getByTestId('card-close').dispatchEvent('click');
+  }
+  expect(opened).toBe(true);
+  await page.getByTestId('throw').click();
+  await expect(page.getByTestId('toast')).toHaveClass(/show/);
+  await page.getByTestId('node-mode').click();
+  await expect(page.getByTestId('node-mode')).toHaveText('Узел: ручной');
+  await page.getByTestId('card-close').dispatchEvent('click');
+
+  // Поезд: карточка, задержка.
+  await page.getByTestId('zoom-fit').click();
+  const tr = await call<{ id: string; x: number; y: number } | undefined>(page, 'trainScreen');
+  expect(tr).toBeTruthy();
+  expect(tr!.x).toBeGreaterThan(0);
+  expect(tr!.x).toBeLessThan(390);
+  {
+    await page.touchscreen.tap(tr.x, tr.y);
+    await expect(page.getByTestId('train-hold')).toBeVisible();
+    await page.getByTestId('train-hold').click();
+    await expect(page.getByTestId('train-hold')).toHaveText('Снять задержку');
+  }
+});

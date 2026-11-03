@@ -55,6 +55,8 @@ export class Interlocking {
   private readonly occupants = new Map<string, string[]>();
   private readonly blockLock = new Map<string, string>();
   private readonly pointLock = new Map<string, { edge: string; route: string }>();
+  /** Текущее положение стрелок: узел → участок, на который они поставлены. */
+  private readonly pointPos = new Map<string, string>();
 
   constructor(
     readonly graph: Graph,
@@ -131,6 +133,52 @@ export class Interlocking {
     return !!list && list.some((t) => t !== except);
   }
 
+  /** Узлы со стрелками (из узла выходит больше одного участка). */
+  switchNodes(): string[] {
+    const res = new Set<string>();
+    for (const b of this.blocks.values()) if (b.index === 0 && this.graph.outEdges(b.fromNode).length > 1) res.add(b.fromNode);
+    return [...res];
+  }
+
+  /** Узлы с маршрутными светофорами (стрелки и слияния). */
+  controlledNodes(): string[] {
+    const res = new Set<string>();
+    for (const b of this.blocks.values()) if (b.controlled) res.add(b.fromNode);
+    return [...res];
+  }
+
+  /** Участок, на который сейчас поставлена стрелка узла. */
+  pointPosition(node: string): string | undefined {
+    return this.pointPos.get(node) ?? this.graph.outEdges(node)[0]?.id;
+  }
+
+  /** Можно ли перевести стрелки: не замкнуты маршрутом, за ними нет занятых блоков. */
+  canThrow(node: string, owner?: string): RouteResult {
+    if (this.pointLock.has(node)) return { ok: false, reason: `Стрелка ${node} замкнута маршрутом` };
+    for (const e of this.graph.outEdges(node)) {
+      const first = this.byEdge.get(e.id)?.[0];
+      if (first && this.isOccupied(first.id, owner)) return { ok: false, reason: `Стрелка ${node}: участок ${first.id} занят` };
+    }
+    return { ok: true };
+  }
+
+  /** Перевести стрелки узла на участок `edge`. */
+  throwPoints(node: string, edge: string): RouteResult {
+    if (!this.graph.outEdges(node).some((e) => e.id === edge)) return { ok: false, reason: `Стрелка ${node}: нет участка ${edge}` };
+    if (this.pointPosition(node) === edge) return { ok: true };
+    const can = this.canThrow(node);
+    if (!can.ok) return can;
+    this.pointPos.set(node, edge);
+    this.version++;
+    return { ok: true };
+  }
+
+  /** Проходит ли поезд `train` через блок: маршрут замкнут на него или на любой поезд (`*`). */
+  permits(blockId: string, train: string): boolean {
+    const o = this.lockedBy(blockId);
+    return o === train || o === '*';
+  }
+
   lockedBy(blockId: string): string | undefined {
     const r = this.blockLock.get(blockId);
     return r === undefined ? undefined : this.routes.get(r)?.owner;
@@ -149,6 +197,10 @@ export class Interlocking {
       if (b.index === 0 && this.graph.outEdges(b.fromNode).length > 1) {
         const have = this.pointLock.get(b.fromNode);
         if (have && have.edge !== b.edge) return { ok: false, reason: `Стрелка ${b.fromNode} замкнута в другом положении` };
+        if (this.pointPosition(b.fromNode) !== b.edge) {
+          const can = this.canThrow(b.fromNode, owner);
+          if (!can.ok) return can;
+        }
         points.set(b.fromNode, b.edge);
         // Защита фланга: соседние ветви не должны быть заняты.
         for (const other of this.graph.outEdges(b.fromNode)) {
@@ -163,7 +215,10 @@ export class Interlocking {
     const route: Route = { id, owner, blocks: [...blockIds], points, seen: new Set() };
     this.routes.set(id, route);
     for (const bid of blockIds) this.blockLock.set(bid, id);
-    for (const [node, edge] of points) this.pointLock.set(node, { edge, route: id });
+    for (const [node, edge] of points) {
+      this.pointLock.set(node, { edge, route: id });
+      this.pointPos.set(node, edge);
+    }
     this.version++;
     return { ok: true };
   }
@@ -222,6 +277,12 @@ export class Interlocking {
         r.releaseAt = undefined;
       }
     }
+  }
+
+  /** Маршрут, которому принадлежит замок блок-участка. */
+  routeOf(blockId: string): Route | undefined {
+    const id = this.blockLock.get(blockId);
+    return id === undefined ? undefined : this.routes.get(id);
   }
 
   /** Занятые блок-участки. */

@@ -6,6 +6,7 @@ import { Game } from './game';
 import { NEKRASOVSKAYA } from './lines';
 import { buildLayout } from './render/layout';
 import { Scene } from './render/scene';
+import { Controller } from './ui/controller';
 import { Panel } from './ui/panel';
 
 declare const __APP_VERSION__: string;
@@ -13,6 +14,10 @@ declare const __APP_VERSION__: string;
 interface MetroDebug {
   version: string;
   state(): Record<string, unknown>;
+  signalScreen(block: string): { x: number; y: number } | undefined;
+  switchScreen(node: string): { x: number; y: number } | undefined;
+  focus(node: string, scale: number): void;
+  trainScreen(): { id: string; x: number; y: number } | undefined;
 }
 
 async function main(): Promise<void> {
@@ -75,6 +80,9 @@ async function main(): Promise<void> {
     },
   });
 
+  const controller = new Controller(game, scene, panel);
+  viewport.on('clicked', (e) => controller.tap(scene.hitTest(e.world.x, e.world.y)));
+
   app.renderer.on('resize', (w: number, h: number) => {
     viewport.resize(w, h, world.w, world.h);
   });
@@ -87,6 +95,15 @@ async function main(): Promise<void> {
 
   const debug: MetroDebug = {
     version: __APP_VERSION__,
+    signalScreen: (b) => scene.signalScreen(b),
+    switchScreen: (n) => scene.switchScreen(n),
+    focus: (n, sc) => scene.focusNode(n, sc),
+    trainScreen: () => {
+      const tr = game.sim.trains.find((t) => t.phase !== 'done');
+      if (!tr) return undefined;
+      const p = scene.trainHeadScreen(tr.id);
+      return p ? { id: tr.id, ...p } : undefined;
+    },
     state: () => ({
       mode: game.mode,
       simTime: game.sim.t,
@@ -99,6 +116,10 @@ async function main(): Promise<void> {
       signalsDrawn: scene.stats.signalsDrawn,
       frames: scene.stats.frames,
       violations: game.sim.il.violations.length,
+      manualLine: game.manualLine,
+      interventions: game.interventions,
+      selected: scene.selected ?? null,
+      routes: game.sim.il.routes.size,
       scale: viewport.scale.x,
     }),
   };

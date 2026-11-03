@@ -223,3 +223,73 @@ body {
     max-height: 60%;
   }
 }
+
+.btn.wide {
+  flex: none;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.toast,
+.card {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.toast {
+  top: calc(64px + var(--safe-t));
+  padding: 10px 12px;
+  background: #141925;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.toast.bad {
+  border-color: var(--warn);
+  color: #ffb3b3;
+}
+
+.card {
+  bottom: 210px;
+  padding: 8px 10px;
+  background: #141925;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toast.show,
+.card.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.card .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.card .head .btn {
+  flex: none;
+}
+
+@media (min-width: 700px) {
+  .toast,
+  .card {
+    left: 50%;
+    right: auto;
+    width: 520px;
+    transform: translateX(-50%);
+  }
+}

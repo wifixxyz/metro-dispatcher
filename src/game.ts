@@ -6,6 +6,8 @@ import type { LineConfig } from './lines/schema';
 export const SPEEDS = [1, 2, 4, 8] as const;
 export const INTERVALS = [120, 180, 300] as const;
 
+export type Result = { ok: true } | { ok: false; reason: string };
+
 export interface LogLine {
   t: number;
   text: string;
@@ -32,6 +34,13 @@ export class Game {
   interval: number;
   readonly log: LogLine[] = [];
   private logSeen = 0;
+  /** Вся линия в ручном режиме. */
+  manualLine = false;
+  /** Узлы в ручном режиме (при автоматической линии). */
+  readonly manualNodes = new Set<string>();
+  /** Число ручных вмешательств за смену. */
+  interventions = 0;
+  private routeSeq = 0;
   private acc = 0;
   private lapCache = new Map<string, number>();
 
@@ -60,6 +69,8 @@ export class Game {
     });
     this.lapCache.set(mode, this.disp.lapTime);
     this.acc = 0;
+    this.interventions = 0;
+    this.applyManual();
     this.log.length = 0;
     this.logSeen = 0;
     const limit = 3 * 3600;
@@ -68,6 +79,109 @@ export class Game {
     this.disp.resetEventCursor();
     this.logSeen = 0;
     this.addLog(0, 'Смена начата', 'info');
+  }
+
+  /** Привести ядро в соответствие с переключателями авто / ручной. */
+  private applyManual(): void {
+    this.disp.auto = !this.manualLine;
+    this.sim.manualNodes.clear();
+    const nodes = this.sim.il.controlledNodes();
+    for (const n of nodes) if (this.manualLine || this.manualNodes.has(n)) this.sim.manualNodes.add(n);
+  }
+
+  private done(text: string, r: Result): Result {
+    if (r.ok) {
+      this.interventions++;
+      this.addLog(this.sim.t, text, 'info');
+    } else {
+      this.addLog(this.sim.t, r.reason, 'warn');
+    }
+    return r;
+  }
+
+  setLineManual(on: boolean): void {
+    this.manualLine = on;
+    this.applyManual();
+    this.interventions++;
+    this.addLog(this.sim.t, on ? 'Линия: ручной режим' : 'Линия: автомат', 'info');
+  }
+
+  setNodeManual(node: string, on: boolean): void {
+    if (on) this.manualNodes.add(node);
+    else this.manualNodes.delete(node);
+    this.applyManual();
+    this.interventions++;
+    this.addLog(this.sim.t, `Узел ${node}: ${on ? 'ручной' : 'авто'}`, 'info');
+  }
+
+  isNodeManual(node: string): boolean {
+    return this.manualLine || this.manualNodes.has(node);
+  }
+
+  /**
+   * Задать маршрут: от светофора на входе в блок `from` до светофора на входе в блок `to`
+   * (маршрут занимает блоки до конечного светофора). Занимает путь кратчайшей цепочкой участков.
+   */
+  setRoute(from: string, to: string): Result {
+    const il = this.sim.il;
+    const a = il.blocks.get(from);
+    const b = il.blocks.get(to);
+    if (!a || !b || from === to) return this.done('', { ok: false, reason: 'Выберите два разных светофора' });
+    let ids: string[];
+    try {
+      const edges = a.edge === b.edge && a.index < b.index ? [a.edge] : this.graph.findPath(a.edge, b.edge);
+      ids = il.pathBlocks(edges).map((x) => x.block.id);
+    } catch {
+      return this.done('', { ok: false, reason: 'Между светофорами нет пути' });
+    }
+    const i = ids.indexOf(from);
+    const j = ids.lastIndexOf(to);
+    if (i < 0 || j <= i) return this.done('', { ok: false, reason: 'Конечный светофор не по ходу движения' });
+    ids = ids.slice(i, j);
+    if (ids.length > 12) return this.done('', { ok: false, reason: 'Маршрут слишком длинный' });
+    const id = `M${++this.routeSeq}`;
+    const r = il.setRoute(id, ids, '*');
+    return this.done(`Маршрут ${from} → ${to}`, r);
+  }
+
+  /** Отменить маршрут, замкнутый на блок-участок (с выдержкой при замыкании приближения). */
+  cancelRoute(blockId: string): Result {
+    const r = this.sim.il.routeOf(blockId);
+    if (!r) return this.done('', { ok: false, reason: 'Маршрут не установлен' });
+    return this.done(`Маршрут ${r.id} отменён`, this.sim.il.cancelRoute(r.id, this.sim.t));
+  }
+
+  throwPoints(node: string, edge?: string): Result {
+    const il = this.sim.il;
+    const outs = this.graph.outEdges(node);
+    if (outs.length < 2) return this.done('', { ok: false, reason: 'Здесь нет стрелки' });
+    const cur = il.pointPosition(node);
+    const target = edge ?? outs[(outs.findIndex((e) => e.id === cur) + 1) % outs.length]?.id ?? '';
+    return this.done(`Стрелка ${node} → ${target}`, il.throwPoints(node, target));
+  }
+
+  private train(id: string) {
+    return this.sim.trains.find((t) => t.id === id);
+  }
+
+  holdTrain(id: string, on = true): Result {
+    const tr = this.train(id);
+    if (!tr) return this.done('', { ok: false, reason: `Нет поезда ${id}` });
+    tr.hold = on;
+    return this.done(on ? `${id} задержан` : `${id}: задержка снята`, { ok: true });
+  }
+
+  sendTrain(id: string): Result {
+    const tr = this.train(id);
+    if (!tr) return this.done('', { ok: false, reason: `Нет поезда ${id}` });
+    if (tr.phase !== 'dwell') return this.done('', { ok: false, reason: `${id} уже в пути` });
+    tr.hold = false;
+    tr.send = true;
+    return this.done(`${id} отправлен`, { ok: true });
+  }
+
+  recallTrain(id: string): Result {
+    return this.done(`${id} → в депо`, this.disp.recall(id));
   }
 
   setInterval(sec: number): void {

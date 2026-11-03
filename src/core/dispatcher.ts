@@ -100,6 +100,8 @@ export class Dispatcher {
   readonly routes: ModeRoutes;
   readonly depot: DepotConfig;
   interval: number;
+  /** Автомат включён: выпуск, возврат и регулировка интервала. */
+  auto = true;
   readonly lapTime: number;
   private readonly tickLen: number;
   private nextTick = 0;
@@ -131,12 +133,14 @@ export class Dispatcher {
     sim.watch.add(this.depot.join);
     const before = trackEdges(cfg, this.depot.station).I;
     sim.dwellScale = (_tr, stop, t) => {
+      if (!this.auto) return 1;
       const gap = t - (this.lastDepart.get(stop.edge) ?? -Infinity);
       if (!Number.isFinite(gap)) return 1;
       // Догон: стоим ровно столько, чтобы отправиться через интервал после предыдущего (не меньше 60% стоянки).
       return Math.max(MIN_DWELL_SCALE, Math.min(1, (this.interval - gap) / this.baseDwell));
     };
     sim.gate = (_tr, stop, t) => {
+      if (!this.auto) return true;
       if (t - (this.lastDepart.get(stop.edge) ?? -Infinity) < this.interval - 1) return false;
       // Перед выходом состава из депо на путь I держим окно в контрольной точке.
       return stop.edge !== before || t - this.effLastPass() >= this.interval - 1;
@@ -204,6 +208,7 @@ export class Dispatcher {
     for (const tr of sim.trains) if (!this.returning.has(tr.id)) this.extend(tr);
     const active = this.active;
     const required = this.required;
+    if (!this.auto) return;
     if (active > required) this.sendToDepot();
     else if (active < required && this.stored > 0) this.trySpawn();
     // События копятся без ограничений; в долгих прогонах сворачиваем их читателем (this.seen).
@@ -232,6 +237,22 @@ export class Dispatcher {
     this.trackToggle++;
     this.spawnLog.push({ t, train: id });
     this.spawnedAt.set(id, t);
+  }
+
+  /** Вручную отправить состав в депо: через ближайшую станцию депо по пути II. */
+  recall(trainId: string): { ok: true } | { ok: false; reason: string } {
+    const tr = this.sim.trains.find((t) => t.id === trainId);
+    if (!tr) return { ok: false, reason: `Нет поезда ${trainId}` };
+    if (this.returning.has(trainId)) return { ok: false, reason: `${trainId} уже идёт в депо` };
+    const track = this.depot.tracks[this.trackToggle % this.depot.tracks.length];
+    const II = trackEdges(this.cfg, this.depot.station).II;
+    let idx = -1;
+    for (let i = tr.eh + 1; i < tr.route.length; i++) if (tr.route[i] === II) { idx = i; break; }
+    if (idx < 0 || !track) return { ok: false, reason: `${trainId}: впереди нет захода в депо` };
+    this.trackToggle++;
+    this.sim.setRoute(tr, [...tr.route.slice(0, idx + 1), this.depot.entry, track.edge]);
+    this.returning.add(trainId);
+    return { ok: true };
   }
 
   /** Отправить в депо состав, который раньше всех подойдёт к станции депо по пути II. */
