@@ -1,0 +1,45 @@
+:root {
+  --bg: #0b0e14;
+  --fg: #d7dce5;
+  --muted: #7d8696;
+  --accent: #de64a1; /* цвет линии 15 */
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+#app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+  text-align: center;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: var(--accent);
+}
+
+.stage {
+  margin: 0;
+  color: var(--muted);
+}
