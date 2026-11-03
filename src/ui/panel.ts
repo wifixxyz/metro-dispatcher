@@ -6,6 +6,7 @@ export interface PanelHandlers {
   onZoom(kind: 'in' | 'out' | 'fit'): void;
   onSettings(s: Settings): void;
   onNewShift(): void;
+  onEditor(): void;
 }
 
 const PALETTE = ['#de64a1', '#5ad19a', '#f2c94c', '#56b6f7', '#ff9f43', '#b48cf2', '#9bdc5a', '#ff6b6b'];
@@ -75,7 +76,8 @@ export class Panel {
     for (const m of game.cfg.modes ?? []) this.modeSelect.append(el('option', { value: m.id, textContent: m.name }));
     this.modeSelect.value = game.mode;
     this.modeSelect.addEventListener('change', () => handlers.onMode(this.modeSelect.value));
-    top.append(title, this.modeSelect);
+    const edit = button('✎', 'editor-open', () => handlers.onEditor(), 'Редактор линий');
+    top.append(title, this.modeSelect, edit);
 
     const zoom = el('div', { className: 'zoom' });
     zoom.append(

@@ -71,6 +71,8 @@ export const LineConfigSchema = z.object({
   modes: z.array(ModeSchema).optional(),
   depot: DepotSchema.optional(),
   layout: LayoutSchema.optional(),
+  /** Макс. длина блок-участка (расстояние между светофорами), м. По умолчанию 400. */
+  blockLength: z.number().min(100).max(2000).optional(),
 });
 
 export type EdgeConfig = z.infer<typeof EdgeSchema>;

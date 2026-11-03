@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { makeMiniLine } from '../tests/helpers/miniLine';
 
 interface State {
   mode: string;
@@ -232,4 +233,62 @@ test('смена и настройки переживают перезапуск
 
   await page.getByTestId('new-shift').click();
   await expect.poll(async () => (await state(page)).simTime).toBeLessThan(before.simTime);
+});
+
+test('редактор: ошибки понятны, правка формами, запуск своей линии и возврат', async ({ page }) => {
+  await open(page);
+  await page.getByTestId('editor-open').click();
+  await expect(page.getByTestId('editor')).toBeVisible();
+  await expect(page.getByTestId('editor-preview')).toBeVisible();
+  await expect(page.getByTestId('editor-status')).toContainText('Ошибок: 0');
+
+  // Сломанный JSON.
+  await page.getByTestId('editor-json').fill('{\n "id": "x",\n "name": \n}');
+  await page.getByTestId('editor-apply').click();
+  await expect(page.getByTestId('editor-errors')).toContainText('некорректный JSON (строка');
+  await expect(page.getByTestId('editor-note')).toContainText('не применён');
+
+  // Схема не сходится: понятные сообщения с путём.
+  await page.getByTestId('editor-json').fill('{"id":"x","name":5}');
+  await page.getByTestId('editor-apply').click();
+  await expect(page.getByTestId('editor-errors')).toContainText('name: ожидалось: строка');
+  await expect(page.getByTestId('editor-errors')).toContainText('edges: нет обязательного поля');
+
+  // Своя линия из JSON.
+  await page.getByTestId('editor-json').fill(JSON.stringify(makeMiniLine(4)));
+  await page.getByTestId('editor-apply').click();
+  await expect(page.getByTestId('editor-status')).toContainText('Ошибок: 0');
+  await expect(page.getByTestId('editor').locator('.pv .hint')).toContainText('4 станций');
+
+  // Правка формами: добавить станцию.
+  await page.getByTestId('add-st-name').fill('Тестовая');
+  await page.getByTestId('add-st').click();
+  await expect(page.getByTestId('editor').locator('.pv .hint')).toContainText('5 станций');
+  await expect(page.getByTestId('editor-status')).toContainText('Ошибок: 0');
+
+  // Ошибка из-за формы блокирует запуск.
+  await page.getByTestId('st-at-s0').fill('9999');
+  await page.getByTestId('st-at-s0').dispatchEvent('change');
+  await expect(page.getByTestId('editor-errors')).toContainText('за пределами участка');
+  await expect(page.getByTestId('editor-play')).toBeDisabled();
+  await page.getByTestId('st-at-s0').fill('150');
+  await page.getByTestId('st-at-s0').dispatchEvent('change');
+  await expect(page.getByTestId('editor-status')).toContainText('Ошибок: 0');
+
+  // Запуск: страница перезагружается уже с новой линией.
+  await page.getByTestId('editor-play').click();
+  await page.waitForFunction(() => '__metro' in window && (window as never as { __metro: { state(): { line: string; frames: number } } }).__metro.state().frames > 3);
+  const s = (await state(page)) as unknown as { line: string; mode: string; trains: number; trainsDrawn: number; violations: number };
+  expect(s.line).toBe('mini');
+  expect(s.mode).toBe('all');
+  expect(s.trains).toBeGreaterThan(2);
+  expect(s.trainsDrawn).toBe(s.trains);
+  expect(s.violations).toBe(0);
+
+  // Возврат к Некрасовской.
+  await page.getByTestId('editor-open').click();
+  await page.getByTestId('editor-reset').click();
+  await expect
+    .poll(() => page.evaluate(() => (window as never as { __metro?: { state(): { line: string } } }).__metro?.state().line).catch(() => undefined), { timeout: 15000 })
+    .toBe('nekrasovskaya');
 });
