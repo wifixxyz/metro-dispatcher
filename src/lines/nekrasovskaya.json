@@ -1,0 +1,450 @@
+{
+ "id": "nekrasovskaya",
+ "name": "Некрасовская (15)",
+ "nodes": [
+  "nk-I-in",
+  "nk-I-out",
+  "nk-II-in",
+  "nk-II-out",
+  "lh-I-in",
+  "lh-I-out",
+  "lh-II-in",
+  "lh-II-out",
+  "ud-I-in",
+  "ud-I-out",
+  "ud-II-in",
+  "ud-II-out",
+  "ks-I-in",
+  "ks-I-out",
+  "ks-II-in",
+  "ks-II-out",
+  "se-I-in",
+  "se-I-out",
+  "se-II-in",
+  "se-II-out",
+  "ok-I-in",
+  "ok-I-out",
+  "ok-II-in",
+  "ok-II-out",
+  "st-I-in",
+  "st-I-out",
+  "st-II-in",
+  "st-II-out",
+  "ng-I-in",
+  "ng-I-out",
+  "ng-II-in",
+  "ng-II-out"
+ ],
+ "edges": [
+  {
+   "id": "nk-I",
+   "from": "nk-I-in",
+   "to": "nk-I-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "nk-II",
+   "from": "nk-II-in",
+   "to": "nk-II-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "lh-I",
+   "from": "lh-I-in",
+   "to": "lh-I-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "lh-II",
+   "from": "lh-II-in",
+   "to": "lh-II-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "ud-I",
+   "from": "ud-I-in",
+   "to": "ud-I-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "ud-II",
+   "from": "ud-II-in",
+   "to": "ud-II-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "ks-I",
+   "from": "ks-I-in",
+   "to": "ks-I-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "ks-II",
+   "from": "ks-II-in",
+   "to": "ks-II-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "se-I",
+   "from": "se-I-in",
+   "to": "se-I-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "se-II",
+   "from": "se-II-in",
+   "to": "se-II-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "ok-I",
+   "from": "ok-I-in",
+   "to": "ok-I-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "ok-II",
+   "from": "ok-II-in",
+   "to": "ok-II-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "st-I",
+   "from": "st-I-in",
+   "to": "st-I-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "st-II",
+   "from": "st-II-in",
+   "to": "st-II-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "ng-I",
+   "from": "ng-I-in",
+   "to": "ng-I-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "ng-II",
+   "from": "ng-II-in",
+   "to": "ng-II-out",
+   "length": 160,
+   "speedKmh": 60,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "nk-lh-I",
+   "from": "nk-I-out",
+   "to": "lh-I-in",
+   "length": 1600,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "lh-nk-II",
+   "from": "lh-II-out",
+   "to": "nk-II-in",
+   "length": 1600,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "lh-ud-I",
+   "from": "lh-I-out",
+   "to": "ud-I-in",
+   "length": 1400,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "ud-lh-II",
+   "from": "ud-II-out",
+   "to": "lh-II-in",
+   "length": 1400,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "ud-ks-I",
+   "from": "ud-I-out",
+   "to": "ks-I-in",
+   "length": 1500,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "ks-ud-II",
+   "from": "ks-II-out",
+   "to": "ud-II-in",
+   "length": 1500,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "ks-se-I",
+   "from": "ks-I-out",
+   "to": "se-I-in",
+   "length": 3000,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "se-ks-II",
+   "from": "se-II-out",
+   "to": "ks-II-in",
+   "length": 3000,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "se-ok-I",
+   "from": "se-I-out",
+   "to": "ok-I-in",
+   "length": 2100,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "ok-se-II",
+   "from": "ok-II-out",
+   "to": "se-II-in",
+   "length": 2100,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "ok-st-I",
+   "from": "ok-I-out",
+   "to": "st-I-in",
+   "length": 1700,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "st-ok-II",
+   "from": "st-II-out",
+   "to": "ok-II-in",
+   "length": 1700,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "st-ng-I",
+   "from": "st-I-out",
+   "to": "ng-I-in",
+   "length": 1900,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "I"
+  },
+  {
+   "id": "ng-st-II",
+   "from": "ng-II-out",
+   "to": "st-II-in",
+   "length": 1900,
+   "speedKmh": 80,
+   "approx": true,
+   "track": "II"
+  },
+  {
+   "id": "ng-turn",
+   "from": "ng-I-out",
+   "to": "ng-II-in",
+   "length": 350,
+   "speedKmh": 25,
+   "approx": true,
+   "track": "turn"
+  },
+  {
+   "id": "nk-turn",
+   "from": "nk-II-out",
+   "to": "nk-I-in",
+   "length": 350,
+   "speedKmh": 25,
+   "approx": true,
+   "track": "turn"
+  }
+ ],
+ "stations": [
+  {
+   "id": "nk",
+   "name": "Некрасовка",
+   "platform": "island",
+   "stops": [
+    {
+     "edge": "nk-I",
+     "at": 150
+    },
+    {
+     "edge": "nk-II",
+     "at": 150
+    }
+   ]
+  },
+  {
+   "id": "lh",
+   "name": "Лухмановская",
+   "platform": "island",
+   "stops": [
+    {
+     "edge": "lh-I",
+     "at": 150
+    },
+    {
+     "edge": "lh-II",
+     "at": 150
+    }
+   ]
+  },
+  {
+   "id": "ud",
+   "name": "Улица Дмитриевского",
+   "platform": "island",
+   "stops": [
+    {
+     "edge": "ud-I",
+     "at": 150
+    },
+    {
+     "edge": "ud-II",
+     "at": 150
+    }
+   ]
+  },
+  {
+   "id": "ks",
+   "name": "Косино",
+   "platform": "island",
+   "stops": [
+    {
+     "edge": "ks-I",
+     "at": 150
+    },
+    {
+     "edge": "ks-II",
+     "at": 150
+    }
+   ]
+  },
+  {
+   "id": "se",
+   "name": "Юго-Восточная",
+   "platform": "shore",
+   "stops": [
+    {
+     "edge": "se-I",
+     "at": 150
+    },
+    {
+     "edge": "se-II",
+     "at": 150
+    }
+   ]
+  },
+  {
+   "id": "ok",
+   "name": "Окская",
+   "platform": "shore",
+   "stops": [
+    {
+     "edge": "ok-I",
+     "at": 150
+    },
+    {
+     "edge": "ok-II",
+     "at": 150
+    }
+   ]
+  },
+  {
+   "id": "st",
+   "name": "Стахановская",
+   "platform": "shore",
+   "stops": [
+    {
+     "edge": "st-I",
+     "at": 150
+    },
+    {
+     "edge": "st-II",
+     "at": 150
+    }
+   ]
+  },
+  {
+   "id": "ng",
+   "name": "Нижегородская",
+   "platform": "shore",
+   "stops": [
+    {
+     "edge": "ng-I",
+     "at": 150
+    },
+    {
+     "edge": "ng-II",
+     "at": 150
+    }
+   ]
+  }
+ ]
+}
