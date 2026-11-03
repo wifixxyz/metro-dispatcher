@@ -1,0 +1,1136 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Диспетчерская — Некрасовка — Нижегородская v7.5</title><style>
+:root{--ink:#263a48;--pink:#db79ad;--muted:#6b7d89}*{box-sizing:border-box}body{margin:0;background:#edf1f3;color:var(--ink);font:14px system-ui}header{padding:14px;background:white;border-bottom:3px solid var(--pink)}h1{font-size:19px;margin:0 0 5px}p{margin:5px 0;color:#657886;line-height:1.45}.wrap{max-width:1500px;margin:auto;padding:10px}.panel{background:white;border:1px solid #d4dfe4;border-radius:12px;padding:12px;margin-bottom:10px}.view{overflow:auto;max-height:75vh;border:1px solid #d6e0e5;border-radius:8px;touch-action:pan-x pan-y}svg{display:block;width:100%;min-width:1280px;height:auto}.main{stroke:#e67fb7;stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round}.inactive{stroke:#20242a;stroke-width:5;stroke-dasharray:12 9;fill:none;stroke-linecap:round}.branch{stroke:#20242a;stroke-width:4;fill:none;stroke-linecap:round;stroke-linejoin:round}.pocket{stroke:#20242a;stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round}.stop{stroke:#d84d63;stroke-width:7}.platform{fill:#f9e9f2;stroke:#ce8eb3;stroke-width:1.5}.name{font-size:16px;font-weight:700;fill:#263a48}.tiny{font-size:12px;fill:#6a7d89}.sw{fill:#fff;stroke:#447a9a;stroke-width:2}.swtext{fill:#245d7e;font-size:11px;font-weight:700;text-anchor:middle;dominant-baseline:middle}.route{stroke:#26b66f;stroke-width:8;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:.8;pointer-events:none}.btns{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}button{padding:10px 12px;border:1px solid #afbfca;background:white;color:#263a48;border-radius:8px;font-weight:650}button.active{background:#e0f5e9;border-color:#2b9a63}.status{background:#f1f5f7;padding:10px;border-radius:8px;margin-top:10px;font-size:12px}small{color:#637887}.controls{border-top:1px solid #dce5e9;padding-top:12px;margin-top:14px}.controls h3{font-size:15px;margin:0 0 5px}.route{stroke:#26b66f}.train{fill:#ff8a00;stroke:#753800;stroke-width:2.5}.train-label{fill:#fff;font-size:8px;font-weight:800;text-anchor:middle;dominant-baseline:middle}.sim-buttons{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.sim-info{background:#fff4e6;border:1px solid #ffd39b;border-radius:9px;padding:10px;margin-top:8px}.sim-buttons button{background:#fff2e4;border-color:#df9c53}.sim-buttons button:disabled{opacity:.5}.sim-progress{width:100%;accent-color:#dc79ac}button{cursor:pointer}.signal-post{stroke:#37444c;stroke-width:2}.signal-head{fill:#17232b;stroke:#6e8491;stroke-width:1}.signal-lamp{stroke:#111;stroke-width:.7}.signal-code{font-size:10px;fill:#334a57;font-weight:700}.signal-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:6px;margin-top:10px}.signal-chip{border:1px solid #d7e1e7;padding:7px;border-radius:7px;font-size:12px}.signal-chip .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px} .map-caption{font-size:15px;font-weight:700;fill:#985278}.signal-code{font-size:9px}.signal-chip{overflow-wrap:anywhere} .sim-info p{overflow-wrap:anywhere}.train-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:10px;margin:12px 0}.train-card{border:1px solid #d3dfe6;border-radius:10px;padding:10px;background:#f8fafb}.train-card label{display:block;margin:8px 0 3px}.train-card select,.train-card input{width:100%;padding:7px}.train-card .tag{font-weight:800}.train-card button{margin-top:7px} .interval-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px;margin:12px 0}.interval-clock{background:#172d3d;color:#e6f5fc;border-radius:10px;padding:10px;border:2px solid #36576a}.interval-clock .station{font-size:12px;color:#b8d3e0}.interval-clock .clock-time{font:700 28px ui-monospace,monospace;letter-spacing:2px;color:#f8d67e}.interval-clock .direction{font-size:11px;color:#d4e4ee}.distance-table{width:100%;border-collapse:collapse;font-size:12px}.distance-table td,.distance-table th{padding:7px;border-bottom:1px solid #dbe5eb;text-align:left} .compact-nk .signal-code{font-size:7px}.shore-label{font-size:11px}.shore-platform{fill:#f9e9f2}.station-label{font-size:12px;font-weight:800;fill:#293b49;text-anchor:middle;dominant-baseline:middle} 
+:root{--ink:#243344;--pink:#b95793;--muted:#697d8c}
+body{background:#f3f5f8}
+header{background:linear-gradient(110deg,#fff 20%,#fceaf5);border-bottom:1px solid #ead5e2;padding:17px 22px}
+h1{font-size:21px}
+.wrap{padding:14px}
+.panel{border-color:#e1e6ed;border-radius:16px;box-shadow:0 3px 15px rgba(30,47,70,.035)}
+.view{border-radius:12px}
+.control-deck{padding:17px}
+.deck-title,.setting-head,.toolbar,.range-ends{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.deck-title b{font-size:17px}.deck-title p{margin-top:4px}
+.live-pill{background:#e7f6ee;color:#227c4d;border-radius:50px;padding:6px 10px;font-size:11px;font-weight:750;white-space:nowrap}
+.dashboard{display:grid;grid-template-columns:minmax(260px,1.5fr) repeat(2,minmax(135px,1fr));gap:10px;margin:14px 0}
+.interval-setting,.metric{border:1px solid #e1e6ee;border-radius:13px;background:#fbfcfe;padding:13px}
+.setting-head label,.metric>span{color:#6c7b8b;font-size:12px;font-weight:650}
+.setting-head strong{font:750 26px ui-monospace,monospace;color:#a13c7a}
+.interval-setting input{margin-top:12px}
+.range-ends{color:#8995a1;font-size:11px}
+.metric strong{display:block;font:750 27px ui-monospace,monospace;margin:8px 0 4px;color:#263e54}
+.metric small{font-size:11px}
+.toolbar{justify-content:flex-start;flex-wrap:wrap;margin:12px 0}
+.toolbar button{padding:10px 14px}
+.toolbar .primary{background:#b95793;border-color:#b95793;color:white}
+.toolbar .primary:disabled{opacity:.55}
+.speed-control{margin-left:auto;min-width:130px;display:flex;align-items:center;gap:8px;font-size:12px}
+.speed-control input{width:100px}
+.slim-status{margin:8px 0;padding:8px 11px;background:#f4f7fb}
+.more-info{border-top:1px solid #e6ebf1;padding-top:10px;margin-top:10px}
+.more-info summary{cursor:pointer;font-weight:700;color:#536577}
+.more-info[open]>summary{margin-bottom:10px}
+.train-controls{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px}
+.train-card{padding:8px}.train-card small{font-size:10px}
+.sim-info{margin-top:6px;background:#f7f9fc;border-color:#e0e8ef}
+.sim-info p{margin:3px 0;font-size:12px}
+@media(max-width:650px){.dashboard{grid-template-columns:1fr 1fr}.interval-setting{grid-column:1/-1}.deck-title{align-items:flex-start}.live-pill{font-size:10px}.speed-control{margin-left:0;width:100%}.speed-control input{flex:1}}
+.route-picker{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;padding:12px;border:1px solid #e5d6e2;border-radius:12px;background:#fcf7fb}
+.route-picker select{flex:1;min-width:220px;padding:10px;border:1px solid #d7c3d2;border-radius:9px;background:white;color:#243344;font-weight:650}
+.route-picker small{color:#738292}
+.station-dim{fill:#aab1be;opacity:.56;pointer-events:none}
+.station-muted{opacity:.28}
+@media(max-width:650px){.route-picker{align-items:stretch;flex-direction:column}.route-picker select{width:100%}}
+
+/* Compact, mobile-first dispatching interface */
+:root{--ink:#243049;--pink:#be4e91;--muted:#78849a}
+body{background:linear-gradient(145deg,#f6f3fa 0%,#eef3f8 85%);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;padding:17px max(16px,calc((100vw - 1480px)/2));border-bottom:1px solid #e6dce9;background:rgba(255,255,255,.92);box-shadow:0 4px 20px #30436a0a}
+header h1{font-size:20px;letter-spacing:-.6px;margin:0}
+.version-tag{border-radius:50px;padding:5px 10px;background:#f4e6f0;color:#a4487e;font-size:12px;font-weight:750}
+.wrap{padding:16px;max-width:1520px}
+.panel{border:1px solid #e7e5ed;border-radius:20px;box-shadow:0 10px 30px #2c37500c;background:#fff;padding:16px;margin-bottom:14px}
+.map-panel{padding:12px}
+.map-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:2px 4px}
+.map-top>b{font-size:15px}
+.map-tools{display:flex;align-items:center;gap:5px;background:#f5f3f8;border-radius:13px;padding:4px}
+.map-tools button{min-width:36px;height:34px;border:0;background:#fff;border-radius:9px;padding:0;font-size:19px;box-shadow:0 1px 3px #263a4810}
+.map-tools button:active{background:#f0d9e9}
+#zoom-value{min-width:48px;text-align:center;font-size:12px;font-weight:800;color:#79516e}
+.view{overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y;border-radius:14px;border:1px solid #e8e5ed;background:#fff;max-height:68vh;scrollbar-color:#d4a7c6 transparent}
+.view svg{width:100%;min-width:1280px;max-width:none;height:auto}
+.route-picker{margin:8px 0 12px;background:#f9f7fb;border:1px solid #ece4ed}
+.route-picker select{border-color:#e4d6e5;box-shadow:0 1px 3px #2221}
+.metric,.interval-setting{background:#f9fafc;border-color:#e9eaf0}
+.toolbar .primary{background:#b94d90;border-color:#b94d90;box-shadow:0 3px 9px #b94d9030}
+.toolbar button{border-radius:11px}
+.quiet-detail{display:none!important}
+.train{stroke-width:2.5}
+.train-label{font-size:8.5px}
+.signal-lamp{stroke-width:.9}
+@media(max-width:650px){header{padding:13px 16px}.wrap{padding:9px}.panel{padding:12px;border-radius:16px}.map-panel{padding:9px}.view{max-height:55vh}.map-tools button{min-width:34px}.deck-title b{font-size:16px}.route-picker{gap:7px}}
+</style></head><body>
+<header><h1>🚇 Метро · Диспетчер</h1><span class="version-tag">v7.5</span></header><main class="wrap"><section class="panel map-panel"><div class="map-top"><b>Схема линии</b><div class="map-tools"><button type="button" id="zoom-out" aria-label="Уменьшить карту">−</button><span id="zoom-value">100%</span><button type="button" id="zoom-in" aria-label="Увеличить карту">＋</button><button type="button" id="zoom-fit" title="Вернуть масштаб">⤢</button></div></div><div class="view" id="map-view"><svg viewBox="0 0 3270 640" xmlns="http://www.w3.org/2000/svg">
+<g id="horizontal-map" transform="translate(1580 0) rotate(90)">
+<!-- continuous two main tracks -->
+<path class="main" d="M185 -1490 V0 L165 60 V1500 M235 -1490 V0 L255 60 V1500"/>
+<!-- Продление Некрасовской линии: островные платформы и оборот у Нижегородской -->
+<rect class="platform shore-platform" x="133" y="-310" width="38" height="120" rx="3"/><rect class="platform shore-platform" x="249" y="-310" width="38" height="120" rx="3"/><text class="station-label shore-label" x="152" y="-250">Юго-Восточная</text>
+<rect class="platform shore-platform" x="133" y="-700" width="38" height="120" rx="3"/><rect class="platform shore-platform" x="249" y="-700" width="38" height="120" rx="3"/><text class="station-label shore-label" x="152" y="-640">Окская</text>
+<path class="branch" d="M185 -480 L235 -550"/>
+<rect class="platform shore-platform" x="133" y="-1080" width="38" height="120" rx="3"/><rect class="platform shore-platform" x="249" y="-1080" width="38" height="120" rx="3"/><text class="station-label shore-label" x="152" y="-1020">Стахановская</text>
+<rect class="platform shore-platform" x="133" y="-1460" width="38" height="120" rx="3"/><rect class="platform shore-platform" x="249" y="-1460" width="38" height="120" rx="3"/><text class="station-label shore-label" x="152" y="-1400">Нижегородская</text>
+<!-- Нижегородская: веер из трёх тупиков по рисунку пользователя.
+     Боковые укорочены и не используются; средний используется для оборота. -->
+<path class="branch" d="M185 -1490 L125 -1550 V-1575 M235 -1490 L295 -1550 V-1575 M185 -1490 L210 -1560 V-1635 M235 -1490 L210 -1560"/>
+<path class="stop" d="M112 -1575 H138 M197 -1635 H223 M282 -1575 H308"/>
+<!-- Kosino: crossover flipped relative to v1.4; two separate track ends beyond the station -->
+<path class="branch" d="M165 345 L255 260"/><g id="kos-route"></g>
+<rect class="platform" x="180" y="110" width="60" height="120" rx="3"/><text class="station-label" x="210" y="170">Косино</text>
+<rect class="platform" x="180" y="525" width="60" height="120" rx="3"/><text class="station-label" x="210" y="585"><tspan x="210" dy="-7">Улица</tspan><tspan x="210" dy="14">Дмитриевского</tspan></text>
+<!-- LUKHMANOVSKAYA: same four-track neck pattern, depot branch off inner tracks -->
+<rect class="platform" x="180" y="815" width="60" height="120" rx="3"/><text class="station-label" x="210" y="875">Лухмановская</text>
+<!-- internal depot tracks left/right of center main pair? in vertical depiction outer mains at 165,255, internal at 188,232 -->
+<path class="pocket" d="M188 1010 V1140 M232 1010 V1140"/>
+<!-- Depot lines continue off-scheme: arrows rather than dead-end buffers -->
+<path d="M181 1125 L188 1135 L195 1125 M225 1125 L232 1135 L239 1125" fill="none" stroke="#20242a" stroke-width="2.6" stroke-linecap="round"/>
+<path d="M188 1140 V1160 M232 1140 V1160" fill="none" stroke="#20242a" stroke-width="4" stroke-dasharray="5 4"/>
+<text x="210" y="1176" class="tiny" text-anchor="middle">Продолжение в депо ⇢</text>
+<path class="branch" d="M165 975 L188 1010 M255 975 L232 1010 M188 1010 L232 1070 M232 1010 L188 1070"/><text x="112" y="1150" class="tiny">ТЧ-20 «Руднево»</text>
+<!-- Nekrasovka four-track end: outer mains continue, inner turnback tracks -->
+<rect class="platform" x="180" y="1240" width="60" height="95" rx="3"/><text class="station-label" x="210" y="1285">Некрасовка</text>
+<path class="pocket" d="M188 1395 V1512 M232 1395 V1512"/>
+<path class="branch" d="M165 1360 L188 1395 M255 1360 L232 1395 M188 1395 L232 1455 M232 1395 L188 1455"/>
+<path class="stop" d="M176 1512 H200 M220 1512 H244 M153 1532 H177 M243 1532 H267"/>
+
+
+
+<g id="signal-layer"></g><g id="train-layer"></g><g id="lukh-route"></g><g id="nekr-route"></g><g id="labels"></g>
+
+</g><text x="20" y="32" class="map-caption">Некрасовка → Нижегородская: I путь</text><text x="20" y="54" class="map-caption">Нижегородская → Некрасовка: II путь</text></svg></div>
+</section>
+<section class="panel control-deck">
+<div class="deck-title"><div><b>🤖 Автодиспетчер</b></div><span class="live-pill">● Автоматический режим</span></div>
+<div class="route-picker"><label for="route-mode"><b>Режим работы линии</b></label><select id="route-mode">
+<option value="N-NG">Некрасовка — Нижегородская</option>
+<option value="N-OK">Некрасовка — Окская</option>
+<option value="N-KS">Некрасовка — Косино</option>
+<option value="LH-NG">Лухмановская — Нижегородская</option>
+<option value="LH-OK">Лухмановская — Окская</option>
+<option value="LH-KS">Лухмановская — Косино</option>
+</select></div>
+<div class="dashboard">
+ <div class="interval-setting"><div class="setting-head"><label for="target-headway">Интервал на линии</label><strong id="target-headway-label">04:00</strong></div><input id="target-headway" class="sim-progress" type="range" min="120" max="600" step="30" value="240"><div class="range-ends"><span>2 мин</span><span>10 мин</span></div></div>
+ <div class="metric"><span>Фактический средний</span><strong id="actual-headway">—</strong><small id="actual-headway-detail" class="quiet-detail">Ожидаем отправления</small></div>
+ <div class="metric"><span>Поездов в работе</span><strong id="fleet-count">2</strong><small id="fleet-detail" class="quiet-detail">На линии и в выпуске</small></div>
+ <div class="metric"><span>Расчётное количество поездов</span><strong id="required-fleet-count">—</strong><small class="quiet-detail">Для выбранного маршрута и интервала</small></div>
+</div>
+<div class="toolbar"><button id="train-add" hidden>＋ Выпустить поезд</button><button id="train-start" class="primary">▶ Запустить</button><button id="train-pause" disabled>⏸ Пауза</button><button id="train-reset">↺ Сброс</button><label class="speed-control" for="train-speed">Ускорение <b id="speed-label">1×</b><input id="train-speed" class="sim-progress" type="range" min="1" max="8" value="1" step="1"></label></div>
+<details class="more-info"><summary>Журнал диспетчера</summary><div id="auto-status" class="status slim-status"></div></details>
+<details class="more-info"><summary>Диагностика и подробности</summary>
+<div class="sim-info"><b id="train-state">Готово</b><div id="train-location"></div></div>
+<div class="train-controls" id="train-controls"></div>
+<details class="more-info"><summary>Расстояния и расчёт времени хода</summary><table class="distance-table"><thead><tr><th>Перегон</th><th>Расстояние</th><th>Время хода</th></tr></thead><tbody id="distance-rows"></tbody></table></details>
+<details class="more-info"><summary>Состояние светофоров</summary><div class="signal-status" id="signal-status"></div></details>
+</details>
+<div id="interval-clocks" hidden></div>
+</section>
+</main>
+<script>
+const ns='http://www.w3.org/2000/svg';
+// Zoom the entire SVG without changing model-space coordinates or routes.
+const mapView=document.getElementById('map-view');
+const mapSvg=mapView.querySelector('svg');
+const zoomValue=document.getElementById('zoom-value');
+let mapZoom=1;
+const BASE_MAP_WIDTH=3270;
+function setMapZoom(next,anchorX=.5){
+ const oldWidth=mapSvg.getBoundingClientRect().width;
+ const anchor=mapView.scrollLeft+mapView.clientWidth*anchorX;
+ const ratio=oldWidth>0?anchor/oldWidth:.5;
+ mapZoom=Math.max(.5,Math.min(3,Math.round(next*10)/10));
+ mapSvg.style.width=(BASE_MAP_WIDTH*mapZoom)+'px';
+ mapSvg.style.minWidth='0';
+ mapSvg.style.maxWidth='none';
+ mapView.scrollLeft=ratio*mapSvg.getBoundingClientRect().width-mapView.clientWidth*anchorX;
+ zoomValue.textContent=Math.round(mapZoom*100)+'%';
+}
+document.getElementById('zoom-in').addEventListener('click',()=>setMapZoom(mapZoom+.2));
+document.getElementById('zoom-out').addEventListener('click',()=>setMapZoom(mapZoom-.2));
+document.getElementById('zoom-fit').addEventListener('click',()=>setMapZoom(1));
+mapView.addEventListener('wheel',e=>{
+ if(!e.ctrlKey)return;
+ e.preventDefault();
+ const r=mapView.getBoundingClientRect();
+ setMapZoom(mapZoom+(e.deltaY<0?.1:-.1),(e.clientX-r.left)/r.width);
+},{passive:false});
+// Pinch zoom on touch screens; ordinary single-finger scrolling is unchanged.
+let pinchStart=null;
+mapView.addEventListener('touchstart',e=>{
+ if(e.touches.length!==2){pinchStart=null;return;}
+ const [a,b]=e.touches;
+ pinchStart={distance:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),zoom:mapZoom};
+},{passive:true});
+mapView.addEventListener('touchmove',e=>{
+ if(e.touches.length!==2||!pinchStart)return;
+ e.preventDefault();
+ const [a,b]=e.touches;
+ const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+ if(pinchStart.distance>0)setMapZoom(pinchStart.zoom*d/pinchStart.distance);
+},{passive:false});
+mapView.addEventListener('touchend',e=>{if(e.touches.length<2)pinchStart=null},{passive:true});
+setMapZoom(1);
+
+// Горизонтальная схема: контрповорот подписей для удобного чтения.
+for(const textNode of document.querySelectorAll('#horizontal-map > text')){
+ const x=Number(textNode.getAttribute('x')||0),y=Number(textNode.getAttribute('y')||0);
+ textNode.setAttribute('transform',`rotate(-90 ${x} ${y})`);
+}
+// Направление движения: I (правый) — Некрасовка → Косино;
+// II (левый) — Косино → Некрасовка. Путь 3 используется для оборота.
+const stops=[
+ {name:'Некрасовка · путь 3',p:[188,1480],wait:0},
+ {name:'Некрасовка · выход с пути 3',p:[188,1455],wait:0},
+ {name:'Некрасовка · стрелочный перевод к I пути',p:[232,1395],wait:0},
+ {name:'Некрасовка · I путь (правый)',p:[255,1360],wait:0},
+ {name:'Некрасовка · I путь, остановка',p:[255,1285],wait:2.5},
+ {name:'Лухмановская · I путь',p:[255,875],wait:1.5},
+ {name:'Улица Дмитриевского · I путь',p:[255,585],wait:1.5},
+ {name:'Косино · прибытие по I пути',p:[255,165],wait:3},
+ {name:'Косино · отправление по I пути к съезду',p:[255,260],wait:0},
+ {name:'Косино · съезд I → II',p:[165,345],wait:0},
+ {name:'Улица Дмитриевского · II путь',p:[165,585],wait:1.5},
+ {name:'Лухмановская · II путь',p:[165,875],wait:1.5},
+ {name:'Некрасовка · II путь, остановка',p:[165,1285],wait:2.5},
+ {name:'Некрасовка · II путь, к стрелке',p:[165,1360],wait:0},
+ {name:'Некрасовка · стрелка на путь 3',p:[188,1395],wait:0},
+ {name:'Некрасовка · путь 3',p:[188,1480],wait:0}
+];
+
+// Signal IDs and track positions. Each group follows the direction of train movement.
+// On the outgoing I track, y decreases; on the returning II track, y increases.
+const signalDefs=[
+ // I путь: Некрасовка -> Косино. Порядок соответствует движению поезда.
+ {id:'N3',name:'Некрасовка · выход из пути 3',x:188,y:1470,dir:'out',order:0,seg:1},
+ {id:'N4',name:'Некрасовка · выход из пути 4',x:232,y:1470,dir:'reserve',order:0},
+ {id:'I-N',name:'Некрасовка · I путь, станционный',x:255,y:1350,dir:'out',order:1,seg:4},
+ {id:'I-N-EXTRA',name:'Некрасовка · дополнительный выходной на I пути',x:255,y:1200,dir:'out',order:1.5,seg:4},
+ {id:'I-NP',name:'Некрасовка → Лухмановская, перегон',x:255,y:1090,dir:'out',order:2,seg:4},
+ {id:'I-LP',name:'Лухмановская · перед станцией',x:255,y:955,dir:'out',order:3,seg:4},
+ {id:'I-L',name:'Лухмановская · I путь, станционный',x:255,y:805,dir:'out',order:4,seg:5},
+ {id:'I-LD',name:'Лухмановская → Дмитриевского, перегон',x:255,y:735,dir:'out',order:5,seg:5},
+ {id:'I-DP',name:'Улица Дмитриевского · перед станцией',x:255,y:675,dir:'out',order:6,seg:5},
+ {id:'I-D',name:'Улица Дмитриевского · I путь, в сторону Косино',x:255,y:505,dir:'out',order:7,seg:6},
+ {id:'I-DK',name:'Дмитриевского → Косино, перегон',x:255,y:430,dir:'out',order:8,seg:6},
+ {id:'I-KP',name:'Косино · перед станцией',x:255,y:290,dir:'out',order:9,seg:6},
+ {id:'I-K',name:'Косино · тупиковый конец I пути (всегда красный)',x:255,y:75,dir:'dead',order:0,seg:6},
+ {id:'I-KV',name:'Косино · I путь, выходной перед съездом',x:255,y:252,dir:'turn',order:0,seg:8},
+ // II путь: Косино -> Некрасовка.
+ {id:'II-K',name:'Косино · II путь, выходной после съезда',x:165,y:385,dir:'back',order:0,seg:9},
+ {id:'II-KD',name:'Косино → Дмитриевского, перегон',x:165,y:465,dir:'back',order:1,seg:9},
+ {id:'II-DP',name:'Улица Дмитриевского · перед станцией',x:165,y:515,dir:'back',order:2,seg:9},
+ {id:'II-D',name:'Улица Дмитриевского · II путь, станционный',x:165,y:665,dir:'back',order:3,seg:10},
+ {id:'II-DL',name:'Дмитриевского → Лухмановская, перегон',x:165,y:730,dir:'back',order:4,seg:10},
+ {id:'II-LP',name:'Лухмановская · перед станцией',x:165,y:800,dir:'back',order:5,seg:10},
+ {id:'II-L',name:'Лухмановская · II путь, станционный',x:165,y:950,dir:'back',order:6,seg:11},
+ {id:'II-LN',name:'Лухмановская → Некрасовка, перегон',x:165,y:1090,dir:'back',order:7,seg:11},
+ {id:'II-NP',name:'Некрасовка · перед станцией',x:165,y:1200,dir:'back',order:8,seg:11},
+ {id:'II-N',name:'Некрасовка · II путь, станционный',x:165,y:1350,dir:'back',order:9,seg:12},
+  {id:'D-OUT',name:'Руднево · путь 3, выход из депо',x:188,y:1110,dir:'depot',order:0},
+ {id:'D-OUT2',name:'Руднево · путь 4, выход из депо',x:232,y:1110,dir:'depot',order:0}
+];
+signalDefs.push(
+ ...[['Юго-Восточная','SE',-250],['Окская','OK',-640],['Стахановская','ST',-1020],['Нижегородская','NG',-1400]].flatMap(([name,code,y])=>[
+  {id:'I-'+code,name:name+' · I путь',x:235,y:y+55,dir:'out',order:10+Math.abs(y)/400,seg:10},
+  {id:'II-'+code,name:name+' · II путь',x:185,y:y-55,dir:'back',order:10+Math.abs(y)/400,seg:10}
+ ])
+);
+// Дополнительные интервальные светофоры на продлённой линии.
+signalDefs.push(
+ ...[
+  ['Юго-Восточная — Окская',-450,'SE-OK'],
+  ['Окская — Стахановская',-830,'OK-ST'],
+  ['Стахановская — Нижегородская',-1210,'ST-NG'],
+  ['Косино — Юго-Восточная',-75,'KS-SE']
+ ].flatMap(([name,y,id])=>[
+  {id:'I-B-'+id,name:name+' · перегон I',x:235,y,dir:'out',order:0},
+  {id:'II-B-'+id,name:name+' · перегон II',x:185,y,dir:'back',order:0}
+ ]),
+ {id:'LH-TURN-ENTRY',name:'Лухмановская · вход в оборотный тупик',x:165,y:945,dir:'turn',order:0},
+ {id:'LH-TURN-EXIT',name:'Лухмановская · выход из оборотного тупика',x:232,y:1100,dir:'turn',order:0},
+ {id:'OK-TURN',name:'Окская · съезд I → II',x:235,y:-548,dir:'turn',order:0},
+ {id:'OK-EXIT',name:'Окская · выход со съезда на II путь',x:185,y:-477,dir:'turn',order:0},
+ {id:'NG-ENTRY',name:'Нижегородская · вход в оборот',x:235,y:-1465,dir:'turn',order:0},
+ {id:'NG-EXIT',name:'Нижегородская · выход из оборота',x:185,y:-1480,dir:'turn',order:0},
+ {id:'NG-MID',name:'Нижегородская · средний оборотный путь',x:210,y:-1595,dir:'turn',order:0}
+);
+// Выходные светофоры каждой новой станции и входные светофоры Косино.
+signalDefs.push(
+ ...[
+  ['Юго-Восточная','SE',-250],
+  ['Окская','OK',-640],
+  ['Стахановская','ST',-1020],
+  ['Нижегородская','NG',-1400]
+ ].flatMap(([name,code,y])=>[
+  {id:'I-'+code+'-EXIT',name:name+' · I путь, выходной',x:235,y:y-78,dir:'out',order:0},
+  {id:'II-'+code+'-EXIT',name:name+' · II путь, выходной',x:185,y:y+78,dir:'back',order:0}
+ ]),
+ {id:'I-K-ENTRY',name:'Косино · I путь, входной',x:255,y:330,dir:'out',order:0},
+ {id:'II-K-ENTRY',name:'Косино · II путь, входной',x:165,y:110,dir:'back',order:0}
+);
+const stationPrefixes=[['Некрасовка','NK'],['Лухмановская','LH'],['Улица Дмитриевского','UD'],['Косино','KS'],['Юго-Восточная','SE'],['Окская','OK'],['Стахановская','ST'],['Нижегородская','NG'],['Руднево','RD']];
+const counts={};
+for(const sig of signalDefs){
+ const matched=stationPrefixes.find(([name])=>sig.name.startsWith(name));
+ const prefix=matched?matched[1]:'1';
+ if(prefix==='1')sig.display='1';
+ else {counts[prefix]=(counts[prefix]||0)+1;sig.display=prefix+'-'+counts[prefix]}
+}
+const signalMap=new Map(signalDefs.map(v=>[v.id,{...v,aspect:'green'}]));
+const signalLayer=document.getElementById('signal-layer');
+const colors={red:'#e83e46',yellow:'#f4c542',green:'#28d967'};
+for(const sig of signalMap.values()){
+ const g=document.createElementNS(ns,'g');if(sig.id==='N3'||sig.id==='N4')g.classList.add('compact-nk');const isNK=sig.id==='N3'||sig.id==='N4';
+ const isRD=sig.id==='D-OUT'||sig.id==='D-OUT2';if(isRD)g.classList.add('compact-nk');
+ const x=isNK?(sig.id==='N3'?sig.x-12:sig.x+12):isRD?(sig.id==='D-OUT'?sig.x-12:sig.x+12):sig.x+(sig.dir==='out'&&(sig.x===255||sig.x===235)?27:-27),y=sig.y;
+ g.innerHTML=`<g ${sig.dir==='back'?`transform="rotate(180 ${x} ${y-14})"`:''}><path class="signal-post" d="M${x} ${y-19} V${y+16}"/><rect class="signal-head" x="${x-8}" y="${y-30}" width="16" height="31" rx="5"/><circle class="signal-lamp" id="lamp-${sig.id}-red" cx="${x}" cy="${y-24}" r="5"/><circle class="signal-lamp" id="lamp-${sig.id}-yellow" cx="${x}" cy="${y-15}" r="5"/><circle class="signal-lamp" id="lamp-${sig.id}-green" cx="${x}" cy="${y-6}" r="5"/></g><text class="signal-code" x="${x+(sig.dir==='out'&&sig.x===255?12:-12)}" y="${y-12}" text-anchor="${sig.dir==='out'&&sig.x===255?'start':'end'}">${sig.display}</text>`;
+ // In the rotated map, positive local X is visually below the rail.
+ // Place every code below its signal head, horizontally readable and with
+ // a consistent gap; alternate near neighbors slightly along the track.
+ const label=g.querySelector('text');
+ if(label){
+  const offset=(sig.id==='N3'||sig.id==='N4'||sig.id==='D-OUT'||sig.id==='D-OUT2')?23:29;
+  const tx=x+offset,ty=y+4;
+  label.setAttribute('x',String(tx));
+  label.setAttribute('y',String(ty));
+  label.setAttribute('text-anchor','middle');
+  label.setAttribute('transform',`rotate(-90 ${tx} ${ty})`);
+ }
+ signalLayer.append(g);
+}
+const signalPanel=document.getElementById('signal-status');
+function paintSignals(){signalPanel.replaceChildren();for(const sig of signalMap.values()){
+ for(const lamp of ['red','yellow','green'])document.getElementById('lamp-'+sig.id+'-'+lamp).setAttribute('fill',sig.aspect===lamp?colors[lamp]:{red:'#49252a',yellow:'#49422a',green:'#244234'}[lamp]);
+ const d=document.createElement('div');d.className='signal-chip';const dot=document.createElement('span');dot.className='dot';dot.style.background=colors[sig.aspect];d.append(dot,document.createTextNode(sig.display+' · '+sig.name+' — '+({red:'красный',yellow:'жёлтый',green:'зелёный'}[sig.aspect])));signalPanel.append(d);
+}}
+
+
+// Все вершины маршрутов совпадают с отрезками SVG-путей.
+// Координаты заданы в локальной системе повернутой схемы.
+const point=(x,y,name='',wait=0)=>({x,y,name,wait});
+const outgoing=[
+ point(255,1360,'Некрасовка · I путь'),
+ point(255,1285,'Некрасовка · I путь · остановка',2.3),
+ point(255,975,'Лухмановская · подход'),
+ point(255,875,'Лухмановская · I путь',1.7),
+ point(255,585,'Улица Дмитриевского · I путь',1.7),
+ point(255,165,'Косино · I путь',1.7),
+ point(255,60,'Сближение путей после Косино'),
+ point(235,0,'Сближение путей · I'),
+ point(235,-250,'Юго-Восточная · I путь',1.7),
+ point(235,-640,'Окская · I путь',1.7),
+ point(235,-1020,'Стахановская · I путь',1.7),
+ point(235,-1400,'Нижегородская · I путь',4.0),
+ point(235,-1490,'Нижегородская · вход в горловину'),
+ point(210,-1560,'Нижегородская · средний оборотный путь'),
+ point(210,-1610,'Нижегородская · оборот',4.0),
+ point(210,-1560,'Нижегородская · выезд из оборота'),
+ point(185,-1490,'Нижегородская · стрелочный съезд'),
+ point(185,-1400,'Нижегородская · II путь',1.7),
+ point(185,-1020,'Стахановская · II путь',1.7),
+ point(185,-640,'Окская · II путь',1.7),
+ point(185,-250,'Юго-Восточная · II путь',1.7),
+ point(185,0,'Сближение путей · II'),
+ point(165,60,'Сближение путей перед Косино'),
+ point(165,165,'Косино · II путь',1.7),
+ point(165,585,'Улица Дмитриевского · II путь',1.7),
+ point(165,875,'Лухмановская · II путь',1.7),
+ point(165,1285,'Некрасовка · II путь',2.3),
+ point(165,1360,'Некрасовка · стрелочная горловина')
+];
+function departure(origin){
+ if(origin===3)return [point(188,1480,'Некрасовка · путь 3'),point(188,1455,'Стрелка пути 3'),point(232,1395,'Перекрёстный съезд'),point(255,1360,'Выход на I путь')];
+ if(origin===4)return [point(232,1480,'Некрасовка · путь 4'),point(232,1395,'Стрелка пути 4'),point(255,1360,'Выход на I путь')];
+ // Ветвь депо: горизонтальный подъезд, затем соединение с I путём
+ if(origin==='depot4')return [point(232,1135,'Депо Руднево · путь 4'),point(232,1010,'Горловина депо'),point(255,975,'Выход из депо на I путь')];
+ return [point(188,1135,'Депо Руднево · путь 3'),point(188,1070,'Горловина депо'),point(232,1010,'Стрелка на I путь'),point(255,975,'Выход из депо на I путь')];
+}
+function arrival(dest){
+ if(dest===3)return [point(188,1395,'Стрелка на путь 3'),point(188,1480,'Некрасовка · путь 3')];
+ return [point(188,1395,'Горловина пути 4'),point(232,1455,'Стрелка на путь 4'),point(232,1480,'Некрасовка · путь 4')];
+}
+const ROUTE_MODES={
+ 'N-NG':{start:'N',end:'NG',endY:-1400},
+ 'N-OK':{start:'N',end:'OK',endY:-640},
+ 'N-KS':{start:'N',end:'KS',endY:165},
+ 'LH-NG':{start:'LH',end:'NG',endY:-1400},
+ 'LH-OK':{start:'LH',end:'OK',endY:-640},
+ 'LH-KS':{start:'LH',end:'KS',endY:165}
+};
+let routeMode='N-NG';
+function activeMode(){return ROUTE_MODES[routeMode]}
+function lukhDeparture(){
+ return [point(255,875,'Лухмановская · I путь',2.0)];
+}
+function lukhPocketRoute(pocket){
+ const x=pocket===3?188:232;
+ return [
+  point(165,975,'Лухмановская · съезд к обороту'),
+  point(188,1010,'Лухмановская · стрелка оборота'),
+  point(x,1070,'Лухмановская · путь '+pocket+' за стрелкой'),
+  point(x,1130,'Лухмановская · путь '+pocket+' · оборот',3.5),
+  point(x,1070,'Лухмановская · путь '+pocket+' · возврат'),
+  point(188,1010,'Лухмановская · возврат к общей стрелке'),
+  point(255,975,'Лухмановская · выход на I'),
+  point(255,875,'Лухмановская · I путь',2.0)
+ ];
+}
+function lukhArrival(){return [point(165,875,'Лухмановская · II путь',2.0),...lukhPocketRoute(4)]}
+function terminalRoute(){
+ const end=activeMode().end;
+ if(end==='NG'){
+  const a=outgoing.findIndex(p=>p.name==='Нижегородская · I путь');
+  const b=outgoing.findIndex(p=>p.name==='Нижегородская · II путь');
+  return outgoing.slice(0,b+1);
+ }
+ if(end==='OK'){
+  const i=outgoing.findIndex(p=>p.name==='Окская · I путь');
+  return outgoing.slice(0,i+1).concat([
+   point(235,-550,'Окская · вход на съезд'),
+   point(185,-480,'Окская · II путь · после съезда')
+  ]);
+ }
+ const i=outgoing.findIndex(p=>p.name==='Косино · I путь');
+ return outgoing.slice(0,i+1).concat([
+  point(255,260,'Косино · оборот по I пути'),
+  point(165,345,'Косино · II путь · после съезда')
+ ]);
+}
+function buildRoute(origin,dest=3){
+ const mode=activeMode();
+ const initial=origin==='lukh'?lukhDeparture():departure(origin);
+ const main=terminalRoute();
+ let start=0;
+ if(origin==='depot'||origin==='depot4'){
+  start=main.findIndex(p=>p.name==='Лухмановская · подход');
+  if(start<0)start=0;
+ }else if(origin==='lukh'){
+  start=main.findIndex(p=>p.name==='Лухмановская · I путь');
+  if(start<0)start=0;
+  start++;
+ }
+ const back=outgoing.slice(outgoing.findIndex(p=>p.name===(
+  mode.end==='NG'?'Нижегородская · II путь':
+  mode.end==='OK'?'Окская · II путь':'Косино · II путь'))+1);
+ // Slice the return path at the selected starting station.
+ const last=back.findIndex(p=>p.name===(mode.start==='N'?'Некрасовка · II путь':'Лухмановская · II путь'));
+ const ret=last>=0?back.slice(0,last+1):back;
+ if(mode.start==='LH')return [...initial,...main.slice(start),...ret,...lukhArrival().slice(1)];
+ return [...initial,...main.slice(start),...ret,
+  point(165,1360,'Некрасовка · стрелочная горловина'),...arrival(dest)];
+}
+const layer=document.getElementById('train-layer');
+const startButton=document.getElementById('train-start'),pauseButton=document.getElementById('train-pause'),speedInput=document.getElementById('train-speed');
+let trains=[],running=false,elapsed=0,last=0,frame=0;
+const TIME_ACCEL=20;
+let targetHeadway=240, nextDispatchAt=0, lastDispatchAt=-Infinity, autoMessage='';
+const nominalRoundTrip=2*(17050/(55*1000/3600)+210)+150;
+const dispatchHistory=[];
+function requiredFleet(){
+ const mode=activeMode();
+ const first=mode.start==='N'?0:1;
+ const last=mode.end==='NG'?7:mode.end==='OK'?5:3;
+ const meters=DISTANCES.slice(first,last).reduce((sum,d)=>sum+d.m,0);
+ const round=2*(meters/(LINE_SPEED_KMH*1000/3600)+(last-first)*30)+120;
+ return Math.max(3,Math.ceil((round+Math.max(90,(last-first)*22))/targetHeadway));
+}
+function refreshAutoStatus(){
+ const live=trains.filter(t=>!t.done&&t.mode!=='depot').length;
+ document.getElementById('fleet-count').textContent=String(live);
+ document.getElementById('required-fleet-count').textContent=String(requiredFleet());
+ const gaps=dispatchHistory.slice(-9).map((t,i,a)=>i>0?t-a[i-1]:null).filter(x=>x!==null);
+ const avg=gaps.length?gaps.reduce((a,b)=>a+b,0)/gaps.length:null;
+ document.getElementById('actual-headway').textContent=avg===null?'—':fmtSeconds(avg);
+ document.getElementById('actual-headway-detail').textContent=avg===null?'Ожидаем два отправления':`По ${gaps.length} последним интервалам`;
+ document.getElementById('auto-status').textContent=
+ `Задано: ${fmtSeconds(targetHeadway)} · В работе: ${live} · `+
+ (avg===null?'Средний интервал появится после двух отправлений.':`Средний фактический: ${fmtSeconds(avg)}.`)+
+ (depotScheduleDeficit()>0?' · Депо: усиленный выпуск для восстановления графика.':'')+
+ (autoMessage?' '+autoMessage:'');
+}
+function updateInterval(){
+ const now=elapsed*TIME_ACCEL;
+ nextDispatchAt=lastDispatchAt===-Infinity?now:Math.max(now,lastDispatchAt+targetHeadway);
+ refreshAutoStatus();
+}
+document.getElementById('target-headway').addEventListener('input',e=>{
+ targetHeadway=Number(e.target.value);
+ document.getElementById('target-headway-label').textContent=fmtSeconds(targetHeadway);
+ updateInterval();
+ autoManageFleet();
+});
+const LINE_SPEED_KMH=55;
+const DISTANCES=[{a:'Некрасовка',b:'Лухмановская',m:2200,ya:1285,yb:875},{a:'Лухмановская',b:'Улица Дмитриевского',m:1750,ya:875,yb:585},{a:'Улица Дмитриевского',b:'Косино',m:2150,ya:585,yb:165},{a:'Косино',b:'Юго-Восточная',m:1850,ya:165,yb:-250},{a:'Юго-Восточная',b:'Окская',m:1650,ya:-250,yb:-640},{a:'Окская',b:'Стахановская',m:1750,ya:-640,yb:-1020},{a:'Стахановская',b:'Нижегородская',m:1700,ya:-1020,yb:-1400}];
+const STATION_POS=[['Некрасовка',1285],['Лухмановская',875],['Улица Дмитриевского',585],['Косино',165],['Юго-Восточная',-250],['Окская',-640],['Стахановская',-1020],['Нижегородская',-1400]];
+const lastDepartures=new Map();
+const clockPanel=document.getElementById('interval-clocks');
+// On-map interval clocks: two directions for each station, drawn in the
+// original coordinate system and then rotated with the entire map.
+const clockLayer=document.createElementNS(ns,'g');clockLayer.id='map-interval-clocks';
+document.getElementById('horizontal-map').append(clockLayer);
+const clockTexts=new Map();
+for(const [station,sy] of STATION_POS){
+ for(const [idx,dir] of ['I','II'].entries()){
+  const x=(sy<0?345:304)+idx*43, y=sy-51;
+  const group=document.createElementNS(ns,'g');
+  group.innerHTML=`<rect x="${x}" y="${y}" width="39" height="102" rx="7" fill="#172d3d" stroke="#50768c" stroke-width="1.5"/><text x="${x+10}" y="${sy}" fill="#b8d3e0" font-size="11" font-weight="bold" text-anchor="middle" transform="rotate(-90 ${x+10} ${sy})">${dir} путь</text><text x="${x+27}" y="${sy}" fill="#f8d67e" font-size="16" font-weight="bold" text-anchor="middle" transform="rotate(-90 ${x+27} ${sy})">—</text>`;
+  clockLayer.append(group);clockTexts.set(station+'|'+dir,group.querySelectorAll('text')[1]);
+ }
+}
+const fmtSeconds=n=>!Number.isFinite(n)?'—':`${String(Math.floor(n/60)).padStart(2,'0')}:${String(Math.floor(n%60)).padStart(2,'0')}`;
+function stationFromPoint(p){
+ if(!p)return null;
+ for(const [name,y] of STATION_POS){if(Math.abs(p.y-y)<1&&p.name.startsWith(name)&&!p.name.includes('подход'))return name}
+ return null;
+}
+function trackDirection(t){return stage(t)==='back'?'II':'I'}
+function recordDeparture(t,p){
+ const station=stationFromPoint(p);if(!station)return;
+ const key=station+'|'+trackDirection(t);
+ lastDepartures.set(key,elapsed*TIME_ACCEL);
+}
+function renderClocks(){
+ for(const [key,node] of clockTexts){
+  const last=lastDepartures.get(key);
+  node.textContent=last===undefined?'—':fmtSeconds(Math.max(0,elapsed*TIME_ACCEL-last));
+ }
+}
+function physicalMetersPerSvgUnit(y){
+ const seg=DISTANCES.find(q=>y<=q.ya&&y>=q.yb);
+ return seg?seg.m/(seg.ya-seg.yb):null;
+}
+function segmentSpeed(t,a,b,len){
+ // The full geometric segment may cross several station boundaries.
+ const mid=(a.y+b.y)/2,rate=physicalMetersPerSvgUnit(mid);
+ if(!rate||Math.abs(a.y-b.y)<5)return 92*(Math.min(LINE_SPEED_KMH,t.maxSpeed)/LINE_SPEED_KMH);
+ const m=len*rate;
+ const time=m/(Math.min(LINE_SPEED_KMH,t.maxSpeed)*1000/3600)/TIME_ACCEL;
+ return len/Math.max(.01,time);
+}
+document.getElementById('distance-rows').innerHTML=DISTANCES.map(q=>`<tr><td>${q.a} — ${q.b}</td><td>${(q.m/1000).toFixed(2).replace('.',',')} км</td><td>${fmtSeconds(q.m/(LINE_SPEED_KMH*1000/3600))}</td></tr>`).join('');
+const trainColors=['#ff8a00','#5577ef','#18a887','#9b5ac8','#dc5486','#1588a6','#b6782a','#ad5c7c'];
+const trainColor=id=>trainColors[(id-1)%trainColors.length];
+function spawn(id,origin,delay){
+ const g=document.createElementNS(ns,'g');
+ g.innerHTML=`<circle class="train" r="10.5" style="fill:${trainColor(id)}"/><text class="train-label">${String(id).padStart(2,'0')}</text>`;
+ layer.append(g);
+ const feed=false;
+ const t={id,origin,delay,destination:feed?3:null,route:feed?depotToSecondTrack(3):buildRoute(origin),i:0,d:0,wait:0,done:false,
+ reason:'Ожидает отправления',g,x:0,y:0,cycles:0,readyAt:delay,maxSpeed:55,mode:'cycle',depotRoute:false};
+ place(t);return t;
+}
+function place(t){
+ const a=t.route[t.i],b=t.route[Math.min(t.i+1,t.route.length-1)];
+ const len=Math.hypot(b.x-a.x,b.y-a.y),q=len?Math.min(1,t.d/len):0;
+ t.x=a.x+(b.x-a.x)*q;t.y=a.y+(b.y-a.y)*q;
+ const circle=t.g.querySelector('circle');circle.setAttribute('cx',t.x);circle.setAttribute('cy',t.y);
+ const label=t.g.querySelector('text');label.setAttribute('x',t.x);label.setAttribute('y',t.y);
+ label.setAttribute('transform',`rotate(-90 ${t.x} ${t.y})`);
+}
+function stage(t){
+ 
+ const terminal=activeMode().end;
+ const first=terminal==='NG'?'Нижегородская · I путь':terminal==='OK'?'Окская · I путь':'Косино · I путь';
+ const second=terminal==='NG'?'Нижегородская · II путь':terminal==='OK'?'Окская · II путь · после съезда':'Косино · II путь · после съезда';
+ const a=t.route.findIndex(p=>p.name===first);
+ const b=t.route.findIndex(p=>p.name===second);
+ if(a<0||b<0)return 'out';
+ if(t.i<a)return 'out';
+ if(t.i<b)return 'turn';
+ return 'back';
+}
+function active(t){return !t.done&&elapsed>=t.readyAt}
+function inThroat(t){return active(t)&&t.y>=1340&&t.y<=1485&&!(t.i===0&&(t.origin===3||t.origin===4))}
+function inKosino(t){return active(t)&&t.y>=140&&t.y<=355}
+function occupyTurnback(t,n){
+ if(t.done&&t.destination===n)return true;
+ if(t.destination===n&&active(t))return true;
+ if(t.origin===n&&!t.done&&t.i<2)return true;
+ return false;
+}
+function sendToDepot(t){
+ if(t.depotRoute)return;
+ const second=activeMode().end==='NG'?'Нижегородская · II путь':activeMode().end==='OK'?'Окская · II путь · после съезда':'Косино · II путь · после съезда';
+ const idx=t.route.findIndex(p=>p.name===second);
+ if(idx<0)return;
+ const path=t.route.slice(0,idx+1);
+ const standardSecond=activeMode().end==='NG'?'Нижегородская · II путь':activeMode().end==='OK'?'Окская · II путь':'Косино · II путь';
+ const tail=outgoing.slice(outgoing.findIndex(p=>p.name===standardSecond)+1);
+ const stop=tail.findIndex(p=>p.name==='Лухмановская · II путь');
+ path.push(...tail.slice(0,stop+1),point(165,975,'Съезд в депо'),
+ point(188,1010,'Горловина депо'),point(188,1135,'Депо Руднево · прибытие'));
+ t.route=path;t.depotRoute=true;t.destination=null;
+}
+function chooseDestination(t){
+ if(t.destination)return true;
+ const free=[3,4].find(n=>!trains.some(o=>o!==t&&occupyTurnback(o,n)));
+ if(!free)return false;
+ t.destination=free;
+ // Rebuild only after the return direction is reached; keep current index and distance.
+ if(t.origin==='depotII'){
+  const neck=t.route.findIndex(p=>p.name==='Некрасовка · стрелочная горловина');
+  t.route=t.route.slice(0,neck+1).concat(arrival(free));
+ }else t.route=buildRoute(t.origin,free);
+ return true;
+}
+const outbound=[...signalMap.values()].filter(q=>q.dir==='out').sort((a,b)=>b.y-a.y);
+const inbound=[...signalMap.values()].filter(q=>q.dir==='back').sort((a,b)=>a.y-b.y);
+function sameBlock(t,sig,next){
+ if(!active(t))return false;
+ const dir=stage(t);
+ if(dir!==sig.dir)return false;
+ // I: x=255 on original line, x=235 after Kosino; II: 165 and 185.
+ const trackX=sig.x;
+ if(Math.abs(t.x-trackX)>13)return false;
+ if(sig.dir==='out')return t.y<=sig.y&&t.y>(next?.y??-1500);
+ return t.y>=sig.y&&t.y<(next?.y??1530);
+}
+function depotMergeOccupied(t,dir){
+ // An approaching depot train yields to the train already closer to the
+ // turnout. A following train must never block the leading train.
+ return trains.some(o=>{
+  if(o===t||!active(o))return false;
+  const depot=['depot','depot4','depotII'].includes(o.origin);
+  if(depot&&o.y>=965&&o.y<=1150){
+   if(o.y<t.y-3)return true; // nearer the junction
+   if(Math.abs(o.y-t.y)<=3&&o.id<t.id)return true;
+   return false; // behind us: must not cause a circular wait
+  }
+  if(dir==='II')return o.x<185&&o.y>=905&&o.y<=1120;
+  return o.x>225&&o.y>=875&&o.y<=1050;
+ });
+}
+function depotLead(dir){
+ const queue=trains.filter(t=>active(t)&&['depot','depot4','depotII'].includes(t.origin)&&t.i===0&&t.y>=965&&t.y<=1150);
+ return queue.sort((a,b)=>a.y-b.y||a.id-b.id)[0]||null;
+}
+// Terminal interlocking: one train owns the entire throat until it has
+// cleared the turnout onto the second main track.
+let ngReservedId=null;
+function ngIndices(t){
+ return {
+  entry:t.route.findIndex(p=>p.name==='Нижегородская · вход в горловину'),
+  exit:t.route.findIndex(p=>p.name==='Нижегородская · II путь')
+ };
+}
+function ngInside(t){
+ if(!active(t)||activeMode().end!=='NG')return false;
+ const {entry,exit}=ngIndices(t);
+ return entry>=0&&exit>=0&&t.i>=entry&&t.i<exit;
+}
+function ngTurnOwner(){
+ const inside=trains.filter(ngInside);
+ if(inside.length)return inside.sort((a,b)=>b.i-a.i||b.d-a.d||a.id-b.id)[0];
+ return trains.find(t=>t.id===ngReservedId&&active(t))||null;
+}
+function ngTurnBlocked(t){
+ const owner=ngTurnOwner();
+ return owner!==null&&owner!==t;
+}
+function ngTurnInterlocking(t){
+ if(activeMode().end!=='NG')return false;
+ const {entry,exit}=ngIndices(t);
+ if(entry<0||exit<0)return false;
+ // Train waits at the platform until the full turnback and exit are free.
+ if(t.i===entry-1){
+  if(ngTurnBlocked(t))return true;
+  ngReservedId=t.id;
+ }
+ // Release only after the train has passed the II platform.
+ if(ngReservedId===t.id&&t.i>=exit)ngReservedId=null;
+ return false;
+}
+// The depot merges at y=975. Release only in a genuine gap between
+// Nekrasovka trains, never by stopping an approaching train in the throat.
+let depotReservation=null, depotReservedAt=-Infinity;
+const MERGE_Y=975, MERGE_CLEAR_Y=905;
+const DEPOT_CLEAR_SECONDS=42;
+const DEPOT_INBOUND_GUARD=115;
+function depotOutbound(t){return active(t)&&['depot','depot4'].includes(t.origin)&&!t.depotRoute}
+function depotInbound(t){
+ return active(t)&&t.depotRoute&&stage(t)==='back'&&t.y>=740&&t.y<=1150;
+}
+function depotApproach(t){
+ return active(t)&&!['depot','depot4','depotII'].includes(t.origin)
+  &&stage(t)==='out'&&t.x>=245&&t.y>MERGE_CLEAR_Y&&t.y<=1370;
+}
+function mainlineApproach(t){return depotApproach(t)}
+// Independent occupancy of the two parallel dead-end tracks.
+const pocketForDepot=t=>t.origin==='depot4'?4:t.origin==='depot'?3:null;
+function lukhTurnbackTrain(t){
+ return active(t)&&activeMode().start==='LH'&&
+  t.lukhPocket!=null&&t.route[t.i]?.name?.startsWith('Лухмановская ·')&&
+  (t.route[t.i]?.name?.includes('съезд к обороту')||
+   t.route[t.i]?.name?.includes('стрелка оборота')||
+   t.route[t.i]?.name?.includes('путь '+t.lukhPocket)||
+   t.route[t.i]?.name?.includes('возврат к общей стрелке'));
+}
+function pocketOccupied(pocket,except=null){
+ return trains.some(o=>o!==except&&active(o)&&(
+   (o.lukhPocket===pocket&&lukhTurnbackTrain(o))||
+   (pocketForDepot(o)===pocket&&!o.depotRoute&&o.y>=1000&&o.y<=1150)
+ ));
+}
+function lukhTurnbackOccupied(except=null){
+ return trains.some(o=>o!==except&&lukhTurnbackTrain(o));
+}
+function depotPocketOccupied(except=null){return pocketOccupied(4,except)}
+function pocketApproachBusy(except=null){
+ return trains.some(o=>o!==except&&lukhTurnbackTrain(o)&&
+  (o.y<1050||o.route[o.i]?.name?.includes('возврат к общей стрелке')));
+}
+function assignLukhPocket(t){
+ if(t.lukhPocket)return true;
+ if(activeMode().start!=='LH')return true;
+ if(pocketApproachBusy(t))return false;
+ // A depot train may be standing on either pocket; use the other one.
+ const candidates=[3,4].filter(p=>!pocketOccupied(p,t));
+ if(!candidates.length)return false;
+ const selected=candidates.find(p=>p!==lastLukhPocket)||candidates[0];
+ t.lukhPocket=selected;lastLukhPocket=selected;
+ const at=t.route.findIndex(p=>p.name==='Лухмановская · съезд к обороту');
+ if(at>=0)t.route.splice(at,t.route.length-at,...lukhPocketRoute(selected));
+ return true;
+}
+let lastLukhPocket=4;
+function clearLukhPocketForTurn(t){
+ // No forced cancellation: the dispatcher chooses a genuinely free pocket.
+ return assignLukhPocket(t);
+}
+function lukhTurnSignal(t){
+ if(activeMode().start!=='LH')return 'red';
+ if(t&&t.lukhPocket)return pocketOccupied(t.lukhPocket,t)?'red':'green';
+ return pocketApproachBusy()||[3,4].every(p=>pocketOccupied(p))?'red':'green';
+}
+function depotInboundWaiting(){
+ return trains.some(t=>depotInbound(t));
+}
+function depotClearanceTime(t){
+ // Timings use simulated seconds. The train must clear the turnout, not
+ // the whole Lukhmanovskaya station block.
+ const units=Math.max(0,t.y-MERGE_CLEAR_Y);
+ return Math.max(24,units/92*TIME_ACCEL);
+}
+function depotScheduleDeficit(){
+ const live=trains.filter(t=>!t.done&&t.mode!=='depot').length;
+ return Math.max(0,requiredFleet()-live);
+}
+function gapAvailableForDepot(t){
+ if(depotInboundWaiting()||lukhTurnbackOccupied())return false;
+ if(trains.some(o=>o!==t&&depotOutbound(o)&&o.i>0&&o.y>=MERGE_CLEAR_Y))return false;
+ // Predict the next mainline arrival at the merge using its actual
+ // route speed; check a short safety margin after depot clearance.
+ const mainSpeed=(1285-975)/(2200/(LINE_SPEED_KMH*1000/3600));
+ const needed=depotClearanceTime(t)+(depotScheduleDeficit()?6:12);
+ return !trains.some(o=>{
+  if(!depotApproach(o))return false;
+  if(o.y<=MERGE_Y+25)return true;
+  const eta=(o.y-MERGE_Y)/mainSpeed;
+  return eta<needed;
+ });
+}
+function nekrasovkaReady(){
+ return trains.some(t=>active(t)&&[3,4].includes(t.origin)&&stage(t)==='out'&&
+  t.i===0&&t.wait<=0&&elapsed*TIME_ACCEL>=nextDispatchAt);
+}
+function removePendingDepot(t){
+ if(!t||!depotOutbound(t)||t.i!==0||t.d!==0)return false;
+ t.done=true;t.g.remove();
+ return true;
+}
+function updateDepotReservation(){
+ const owner=trains.find(t=>t.id===depotReservation&&active(t));
+ if(depotReservation!==null&&(!owner||owner.y<MERGE_CLEAR_Y||owner.i>=5||
+    (owner.i===0&&(depotInboundWaiting()||elapsed*TIME_ACCEL-depotReservedAt>120)))){
+  depotReservation=null;
+ }
+ if(depotReservation===null){
+  const lead=depotLead();
+  // At 2-minute intervals the depot may join any sufficiently long gap,
+  // including gaps following a Nekrasovka departure.
+  if(lead&&lead.i===0&&elapsed>=lead.readyAt&&lead.wait<=0&&
+     gapAvailableForDepot(lead)){
+   depotReservation=lead.id;
+   depotReservedAt=elapsed*TIME_ACCEL;
+  }
+ }
+}
+function depotSignalAspect(t){
+ if(!t||t.i!==0)return 'red';
+ return depotReservation===t.id?'green':'red';
+}
+function depotApproachHold(t,nextY){
+ // A reserved depot train has priority at the Nekrasovka exit, not
+ // against a train already running between Nekrasovka and Lukhmanovskaya.
+ return false; // depot yields to running service; no artificial red on the mainline
+}
+function updateSignals(){
+ for(const chain of [outbound,inbound]){
+  for(let i=0;i<chain.length;i++)chain[i].aspect=trains.some(t=>sameBlock(t,chain[i],chain[i+1]))?'red':'green';
+ }
+ const kosOccupied=trains.some(t=>inKosino(t)&&t.y<290);
+ const turnEntry=signalMap.get('LH-TURN-ENTRY');
+ const turnExit=signalMap.get('LH-TURN-EXIT');
+ if(turnEntry)turnEntry.aspect=lukhTurnSignal(null);
+ if(turnExit)turnExit.aspect=pocketApproachBusy()?'red':lukhTurnbackOccupied()?'yellow':'green';
+ // Interlocking: no train may enter the single active turnback when occupied.
+ const ngOwner=ngTurnOwner();
+ signalMap.get('NG-ENTRY').aspect=ngOwner?'red':'green';
+ signalMap.get('NG-EXIT').aspect=ngOwner&&ngOwner.i>=ngIndices(ngOwner).exit-2?'green':'red';
+ signalMap.get('NG-MID').aspect=ngOwner?'yellow':'red';
+ if(signalMap.has('OK-TURN')){
+  const occupied=trains.some(t=>active(t)&&stage(t)==='turn'&&t.y>=-685&&t.y<=-460);
+  signalMap.get('OK-TURN').aspect=occupied?'red':'green';
+  signalMap.get('OK-EXIT').aspect=occupied?'yellow':'green';
+ }
+ signalMap.get('I-K').aspect=activeMode().end==='KS'?'red':'green';
+ signalMap.get('I-KP').aspect=kosOccupied?'red':signalMap.get('I-KP').aspect;
+ const departing=trains.some(t=>inKosino(t)&&stage(t)==='turn'&&t.wait===0);
+ signalMap.get('I-KV').aspect=departing?'green':'red';
+ for(const [n,id] of [[3,'N3'],[4,'N4']]){
+  const t=trains.find(t=>t.origin===n&&!t.done&&t.i<5);
+  const otherInThroat=trains.some(o=>o!==t&&active(o)&&o.y>=1340&&o.y<1480&&o.i>0&&stage(o)==='back');
+  signalMap.get(id).aspect=t&&elapsed>=t.readyAt&&!otherInThroat?'green':'red';
+ }
+ // Interlocking: a depot train can merge only inside an available gap.
+ updateDepotReservation();
+ const lead=depotLead();
+ const reserved=trains.find(t=>t.id===depotReservation);
+ signalMap.get('D-OUT').aspect=reserved&&reserved.origin!=='depot4'?'green':'red';
+ signalMap.get('D-OUT2').aspect=reserved&&reserved.origin==='depot4'?'green':'red';
+ // NK signal remains governed by block occupancy; depot trains yield.
+ for(const chain of [outbound,inbound]){
+  for(let i=0;i<chain.length-1;i++)if(chain[i].aspect==='green'&&chain[i+1].aspect==='red')chain[i].aspect='yellow';
+ }
+ paintSignals();
+}
+function occupiedAhead(t,x,y){
+ for(const o of trains){
+  if(o===t||!active(o))continue;
+  const dist=Math.hypot(o.x-x,o.y-y);
+  if(dist<22)return 'Впереди поезд №'+String(o.id).padStart(2,'0');
+  // Common running tracks, prevent catching up at high simulation speed.
+  if(stage(o)===stage(t)&&Math.abs(o.x-x)<16){
+   if(stage(t)==='out'&&o.y<y&&o.y>y-78)return 'Занят участок поездом №'+o.id;
+   if(stage(t)==='back'&&o.y>y&&o.y<y+78)return 'Занят участок поездом №'+o.id;
+  }
+ }
+ return '';
+}
+function signalAhead(t,x,y){
+ const dir=stage(t),chain=dir==='out'?outbound:dir==='back'?inbound:[];
+ for(const sig of chain){
+  if(sig.aspect!=='red'||Math.abs(x-sig.x)>14||Math.abs(t.x-sig.x)>14)continue;
+  if(!trains.some(o=>o!==t&&sameBlock(o,sig,chain[chain.indexOf(sig)+1])))continue;
+  if(dir==='out'&&t.y>=sig.y+14&&y<sig.y+14)return sig.id;
+  if(dir==='back'&&t.y<=sig.y-14&&y>sig.y-14)return sig.id;
+ }
+ return '';
+}
+
+// Завершение одного круга: поезд остаётся в занятом оборотном пути,
+// после стоянки перестраивает маршрут для следующего рейса.
+function finishCycle(t){
+ if(t.depotRoute){
+  t.done=true;t.reason='Прибыл в депо Руднево';
+  t.g.remove();
+  return;
+ }
+ const dest=activeMode().start==='LH'?'lukh':(t.destination||3);
+ t.cycles++;
+ t.origin=dest;
+ t.destination=null;
+ t.route=buildRoute(dest);
+ t.i=0;t.d=0;t.wait=3.5;
+ t.readyAt=elapsed+3.5;
+ t.depotRoute=false;t.reason='Оборот на пути '+dest+' · рейсов: '+t.cycles;
+ place(t);
+}
+
+function advance(t,dt){
+ if(!active(t))return;
+ // Timetable gate: all outward departures from Nekrasovka are metered.
+ if(stage(t)==='out'&&t.i===0&&t.d===0&&t.wait<=0&&(t.origin===3||t.origin===4||t.origin==='lukh')){
+  const simNow=elapsed*TIME_ACCEL;
+  if(simNow<nextDispatchAt){t.reason='График: ожидание интервала';return}
+  const sig=signalMap.get(t.origin===3?'N3':'N4');
+  if(sig?.aspect==='red'&&t.origin!=='lukh'){t.reason='Ожидание выходного светофора';return}
+  // Record dispatch only once the train actually moves below.
+ }
+ if(t.wait>0){t.wait=Math.max(0,t.wait-dt*TIME_ACCEL);t.reason='Стоянка';return}
+ 
+ const a=t.route[t.i],b=t.route[t.i+1];
+ if(!b){finishCycle(t);return}
+ if(t.mode==='depot'&&!t.depotRoute&&stage(t)==='back')sendToDepot(t);
+ const backStart=t.route.findIndex(p=>p.name==='Некрасовка · II путь');
+ if(activeMode().start==='N'&&!t.depotRoute&&backStart>=0&&t.i>=backStart&&!t.destination){
+  if(!chooseDestination(t)){t.reason='Оба оборотных пути заняты';return}
+ }
+ if(t.i===0&&t.d===0&&(t.origin===3||t.origin===4)){
+  const sig=signalMap.get(t.origin===3?'N3':'N4');
+  if(sig.aspect==='red'){t.reason='Красный выходной '+sig.id;return}
+ }
+ if((t.origin==='depot'||t.origin==='depot4'||t.origin==='depotII')&&t.i===0&&t.d===0&&signalMap.get(t.origin==='depot4'?'D-OUT2':'D-OUT')?.aspect==='red'){
+  t.reason='Депо: ожидание свободного I пути';return;
+ }
+ if(['depot','depot4','depotII'].includes(t.origin)&&t.i===0&&t.d===0&&
+    depotReservation!==t.id){
+  t.reason='Красный RD: главный путь или стрелочная горловина заняты';return;
+ }
+ // Once the train enters the turnout, it keeps its route reservation.
+ if(t.origin==='depotII'&&t.i===1&&trains.some(o=>o!==t&&active(o)&&o.x<180&&o.y>=940&&o.y<=1010&&o.origin!=='depotII')){
+  t.reason='II путь занят, ожидание освобождения';return;
+ }
+ const len=Math.hypot(b.x-a.x,b.y-a.y),nextD=Math.min(len,t.d+dt*segmentSpeed(t,a,b,len));
+ const q=len?nextD/len:1,nx=a.x+(b.x-a.x)*q,ny=a.y+(b.y-a.y)*q;
+ if(depotApproachHold(t,ny)){
+  t.reason='NK: ожидание выхода поезда из депо';return;
+ }
+ if(activeMode().start==='LH'&&t.route[t.i+1]?.name==='Лухмановская · съезд к обороту'){
+  if(!assignLukhPocket(t)){
+   t.reason='Лухмановская: оба тупика заняты или общая стрелка занята';return;
+  }
+ }
+ if(activeMode().start==='LH'&&t.route[t.i+1]?.name==='Лухмановская · съезд к обороту'&&
+    lukhTurnSignal(t)==='red'){
+  t.reason='LH-TURN-ENTRY красный: тупик или горловина заняты поездом из депо / оборота';return;
+ }
+ if(activeMode().start==='LH'&&t.lukhPocket&&
+  t.route[t.i+1]?.name==='Лухмановская · возврат к общей стрелке'&&
+  pocketApproachBusy(t)){
+  t.reason='Лухмановская: ожидание освобождения общей стрелки';return;
+ }
+ const ahead=occupiedAhead(t,nx,ny);
+ if(ahead){t.reason='Ожидание: '+ahead;return}
+ const sig=signalAhead(t,nx,ny);
+ if(sig){t.reason='Ожидание красного '+sig;return}
+ // One train at a time in the Kosino station and reversing throat.
+ if(ngTurnInterlocking(t)){
+  t.reason='Нижегородская: оборотный тупик занят, ожидание у платформы';return;
+ }
+ if(activeMode().end==='OK'&&stage(t)==='out'&&t.y>=-540&&ny< -540&&
+  trains.some(o=>o!==t&&active(o)&&o.y>=-685&&o.y<=-460&&stage(o)==='turn')){
+  t.reason='Окская: красный OK-TURN, съезд занят';return;
+ }
+ // A train already inside the working turnback must be able to clear it.
+
+ if(false&&stage(t)==='turn'&&t.i>=t.route.findIndex(p=>p.name==='Косино · I путь')&&
+   t.y>=252&&t.y<290&&signalMap.get('I-KV').aspect==='red'){
+  t.reason='Ожидание выходного I-KV';return;
+ }
+ // Prevent two trains using Nekrasovka switches simultaneously.
+ if(ny>=1350&&ny<=1470&&t.y>=1250&&trains.some(o=>o!==t&&inThroat(o)&&Math.hypot(o.x-nx,o.y-ny)<115&&
+ // A train already inside the throat must be allowed to clear it.
+ !(t.y>=1350&&t.y<=1470&&stage(t)==='out'&&stage(o)==='back'))){
+  t.reason='Горловина Некрасовки занята';return;
+ }
+ if(t.d===0&&nextD>0){
+  const station=stationFromPoint(a);
+  if(station){
+   const key=station+'|'+trackDirection(t),previous=lastDepartures.get(key);
+   const effectiveHeadway=(depotOutbound(t)&&depotScheduleDeficit()>0)
+     ?Math.max(85,targetHeadway*.80):targetHeadway;
+   if(previous!==undefined&&elapsed*TIME_ACCEL-previous<effectiveHeadway){
+    t.reason='Интервал на линии: ожидание '+fmtSeconds(effectiveHeadway-(elapsed*TIME_ACCEL-previous));
+    return;
+   }
+  }
+
+  if(stage(t)==='out'&&t.i===0&&(t.origin===3||t.origin===4||t.origin==='lukh')){
+   lastDispatchAt=elapsed*TIME_ACCEL;
+   nextDispatchAt=lastDispatchAt+targetHeadway;
+   dispatchHistory.push(lastDispatchAt);
+   if(dispatchHistory.length>30)dispatchHistory.shift();
+  }
+  recordDeparture(t,a);
+ }
+ t.d=nextD;t.reason='Движение';place(t);
+ if(t.d>=len-0.0001){
+  t.i++;t.d=0;t.wait=b.wait?30:0;place(t);
+  if(t.i>=t.route.length-1){finishCycle(t)}
+ }
+}
+const controls=document.getElementById('train-controls');
+function rebuildTrainControls(){
+ controls.replaceChildren();
+ for(const t of trains){
+  const card=document.createElement('div');card.className='train-card';
+  card.innerHTML=`<div class="tag" style="color:${trainColor(t.id)}">● Поезд №${String(t.id).padStart(2,'0')}</div>
+  <small>Скорость по графику: ${LINE_SPEED_KMH} км/ч · управление автоматическое</small>`;
+  controls.append(card);
+ }
+}
+let lastFleetChangeAt=-Infinity;
+let pendingFleetRequest=0;
+function addTrain(){
+ const live=trains.filter(t=>!t.done);
+ const depotBusy=live.some(t=>['depot','depot4','depotII'].includes(t.origin)&&t.y>=965&&t.y<=1150);
+ // Hold the next train until the preceding departure has cleared the junction.
+
+ if(depotBusy||depotReservation!==null||depotInboundWaiting()||lukhTurnbackOccupied()||
+   (activeMode().start==='LH'&&trains.some(t=>active(t)&&stage(t)==='back'&&t.y>=720&&t.y<=1010)))return false;
+ const used=new Set(live.map(t=>t.id));
+ let id=1;while(used.has(id))id++;
+ const outbound=live.filter(t=>t.origin==='depot'||t.origin==='depot4').length;
+ const inbound=live.filter(t=>t.origin==='depotII').length;
+ const free=[3,4].filter(p=>!pocketOccupied(p)&&
+  !trains.some(o=>active(o)&&pocketForDepot(o)===p&&!o.depotRoute));
+ if(!free.length)return false;
+ const t=spawn(id,free[0]===3?'depot':'depot4',elapsed);
+ trains.push(t);rebuildTrainControls();lastFleetChangeAt=elapsed*TIME_ACCEL;
+ return true;
+}
+function autoManageFleet(){
+ // On a shorter interval, the calculated number of trains rises. Keep the
+ // shortfall as a standing request, rather than dropping it when the depot
+ // throat is temporarily busy.
+ if(depotInboundWaiting()){
+  for(const t of trains)if(depotOutbound(t)&&t.i===0&&t.d===0){
+   if(removePendingDepot(t)&&depotReservation===t.id)depotReservation=null;
+  }
+  if(trains.some(t=>t.done)){
+   trains=trains.filter(t=>!t.done);rebuildTrainControls();
+  }
+ }
+ const need=requiredFleet();
+ const live=trains.filter(t=>!t.done);
+ let committed=live.filter(t=>t.mode!=='depot');
+ // A previous interval increase may have marked trains for withdrawal.
+ // If the interval is reduced again, recall those that have not yet
+ // committed to the depot branch.
+ if(committed.length<need){
+  for(const t of live){
+   if(committed.length>=need)break;
+   if(t.mode==='depot'&&!t.depotRoute){
+    t.mode='cycle';committed.push(t);
+   }
+  }
+ }
+ if(committed.length>need){
+  let excess=committed.length-need;
+  for(const t of [...committed].reverse()){
+   if(excess<=0)break;
+   if(depotOutbound(t)&&t.i===0&&t.d===0&&removePendingDepot(t)){
+    if(depotReservation===t.id)depotReservation=null;
+    excess--;
+   }
+  }
+  if(excess>0)for(const t of [...committed].reverse()){
+   if(excess<=0)break;
+   if(t.done||t.mode!=='cycle')continue;
+   t.mode='depot';excess--;
+  }
+  if(trains.some(t=>t.done)){
+   trains=trains.filter(t=>!t.done);rebuildTrainControls();
+  }
+ }
+ pendingFleetRequest=Math.max(0,need-trains.filter(t=>!t.done&&t.mode!=='depot').length);
+ // Retry each frame while there is a deficit. A blocked attempt is not
+ // considered a fulfilled order, and cannot reset the retry timer.
+ if(pendingFleetRequest>0&&elapsed*TIME_ACCEL-lastFleetChangeAt>=4){
+  if(addTrain())pendingFleetRequest--;
+ }
+ autoMessage=pendingFleetRequest>0
+  ?`Недостаёт ${pendingFleetRequest} сост. · ожидают выпуска из депо.`
+  :`Парк укомплектован (${need} сост.).`;
+ refreshAutoStatus();
+}
+function render(){
+ document.getElementById('train-location').innerHTML=trains.map(t=>
+ `<p><b style="color:${trainColor(t.id)}">● №${String(t.id).padStart(2,'0')}</b> — ${t.done?'В депо':elapsed<t.readyAt?'Стоянка / ожидание отправления':t.reason}; ${t.route[t.i].name}${t.destination?' → путь '+t.destination:''}; кругов: ${t.cycles}</p>`).join('');
+ document.getElementById('train-state').textContent=running?'🤖 Автоматическое движение по заданному интервалу':'Пауза / готово';
+ startButton.disabled=running;pauseButton.disabled=!running;
+}
+function tick(now){
+ if(!running)return;
+ if(!last)last=now;
+ const dt=Math.min((now-last)/1000,.05)*Number(speedInput.value);last=now;
+ const steps=Math.max(1,Math.ceil(dt/.065));
+ for(let k=0;k<steps;k++){
+  const step=dt/steps;elapsed+=step;
+  updateSignals();
+  for(const t of [...trains]){advance(t,step);updateSignals()}
+ }
+ // Remove retired trains from the roster so their slot can be reused.
+ if(trains.some(t=>t.done)){
+  trains=trains.filter(t=>!t.done);
+  rebuildTrainControls();
+  updateSignals();
+ }
+ autoManageFleet();render();renderClocks();
+ frame=requestAnimationFrame(tick);
+}
+function start(){running=true;last=0;render();frame=requestAnimationFrame(tick)}
+function pause(){running=false;cancelAnimationFrame(frame);last=0;render()}
+function initializeDistributedFleet(){
+ const origin=activeMode().start==='LH'?'lukh':3;
+ const sample=buildRoute(origin);
+ const num=Math.min(22,Math.max(4,Math.ceil(requiredFleet()*.85)));
+ const isNg=activeMode().end==='NG';
+ const forbidden=p=>{
+  if(!isNg)return false;
+  return p.y< -1395; // never seed a train inside the single-track turnback
+ };
+ const valid=sample.map((p,i)=>({p,i})).filter(({p,i})=>i<sample.length-1&&!forbidden(p)&&
+  (p.name.includes('I путь')||p.name.includes('II путь')||p.name.includes('подход')||
+   p.name.includes('Сближение')||p.name.includes('Выход на I')));
+ // Spread trains over running tracks, not across route indices of very
+ // different physical lengths; keep at most one train near each platform.
+ const chosen=[];
+ for(let k=0;k<num;k++){
+  const item=valid[Math.min(valid.length-1,Math.floor((k+.5)*valid.length/num))];
+  if(item&&!chosen.includes(item.i))chosen.push(item.i);
+ }
+ trains=chosen.map((index,i)=>{
+  const t=spawn(i+1,activeMode().start==='LH'?'lukh':(i%2?4:3),0);
+  t.i=Math.min(index,t.route.length-2);t.d=0;t.wait=0;
+  t.readyAt=0;place(t);t.reason='Предварительная расстановка';
+  return t;
+ });
+}
+const dimLayer=document.createElementNS(ns,'g');
+dimLayer.id='inactive-stations';
+document.getElementById('horizontal-map').insertBefore(dimLayer,document.getElementById('signal-layer'));
+function shadeInactiveStations(){
+ dimLayer.replaceChildren();
+ const mode=activeMode();
+ const startIndex=mode.start==='N'?0:1;
+ const endIndex=mode.end==='NG'?7:mode.end==='OK'?5:3;
+ STATION_POS.forEach(([name,y],i)=>{
+  if(i>=startIndex&&i<=endIndex)return;
+  const rect=document.createElementNS(ns,'rect');
+  rect.setAttribute('x',y<0?'105':'142');
+  rect.setAttribute('y',String(y-125));
+  rect.setAttribute('width',y<0?'200':'138');
+  rect.setAttribute('height','250');
+  rect.setAttribute('rx','12');
+  rect.setAttribute('class','station-dim');
+  dimLayer.append(rect);
+ });
+}
+document.getElementById('route-mode').addEventListener('change',e=>{
+ routeMode=e.target.value;document.querySelector('header h1').textContent='🚇 Диспетчерская · '+document.getElementById('route-mode').selectedOptions[0].textContent;reset();
+});
+function reset(){
+ running=false;cancelAnimationFrame(frame);last=0;elapsed=0;lastDepartures.clear();layer.replaceChildren();
+ nextDispatchAt=0;lastDispatchAt=-Infinity;autoMessage='';dispatchHistory.length=0;depotReservation=null;depotReservedAt=-Infinity;ngReservedId=null;lastLukhPocket=4;pendingFleetRequest=0;
+ initializeDistributedFleet();shadeInactiveStations();lastFleetChangeAt=0;
+ // Additional rolling stock is released automatically when running.
+ rebuildTrainControls();updateSignals();render();renderClocks();refreshAutoStatus();
+}
+// Manual insertion disabled: automated dispatcher manages fleet.
+startButton.addEventListener('click',start);
+pauseButton.addEventListener('click',pause);
+document.getElementById('train-reset').addEventListener('click',reset);
+speedInput.addEventListener('input',()=>document.getElementById('speed-label').textContent=speedInput.value+'×');
+reset();
+</script></body></html>
