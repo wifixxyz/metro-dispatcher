@@ -76,7 +76,7 @@ export interface DispatcherOptions {
 /** Пробный прогон одного поезда по кругу: оборотное время режима, с. */
 export function measureLap(graph: Graph, cfg: LineConfig, modeId: string, simOpts: { dwell?: number } = {}): number {
   const r = modeRoutes(graph, cfg, modeId);
-  const sim = new Sim(graph, { dwellJitter: 0, ...simOpts });
+  const sim = new Sim(graph, { dwellJitter: 0, ...(cfg.blockLength !== undefined ? { maxBlock: cfg.blockLength } : {}), ...simOpts });
   sim.addTrain('probe', [...r.loop, ...r.loop]);
   const key = r.westI;
   const departs: number[] = [];

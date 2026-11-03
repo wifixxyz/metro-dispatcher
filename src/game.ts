@@ -105,7 +105,7 @@ export class Game {
     this.actions = [];
     this.stats = new Stats(this.cfg);
     this.graph = new Graph(this.cfg);
-    this.sim = new Sim(this.graph, { seed: this.seed });
+    this.sim = new Sim(this.graph, { seed: this.seed, ...(this.cfg.blockLength !== undefined ? { maxBlock: this.cfg.blockLength } : {}) });
     const lap = this.lapCache.get(mode);
     this.disp = new Dispatcher(this.sim, this.cfg, {
       mode,

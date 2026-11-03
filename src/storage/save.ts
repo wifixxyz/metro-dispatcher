@@ -1,6 +1,7 @@
 import { del, get, set } from 'idb-keyval';
 import { z } from 'zod';
 import type { SaveData } from '../game';
+import { LineConfigSchema, type LineConfig } from '../lines/schema';
 
 const ActionSchema = z.discriminatedUnion('k', [
   z.object({ n: z.number().int().nonnegative(), k: z.literal('interval'), v: z.number().positive() }),
@@ -62,6 +63,7 @@ export function memoryKV(): KV {
 
 const SAVE_KEY = 'shift:v1';
 const SETTINGS_KEY = 'settings:v1';
+const LINE_KEY = 'line:custom:v1';
 
 /** Сохранение смены и настроек. Повреждённые данные игнорируются (и удаляются). */
 export class Storage {
@@ -87,6 +89,32 @@ export class Storage {
   async clearShift(): Promise<void> {
     try {
       await this.kv.del(SAVE_KEY);
+    } catch {
+      /* нечего чистить */
+    }
+  }
+
+  /** Линия, созданная в редакторе. */
+  async saveLine(cfg: LineConfig): Promise<void> {
+    await this.kv.set(LINE_KEY, cfg);
+  }
+
+  async loadLine(): Promise<LineConfig | undefined> {
+    try {
+      const raw = await this.kv.get(LINE_KEY);
+      if (raw === undefined) return undefined;
+      const r = LineConfigSchema.safeParse(raw);
+      if (r.success) return r.data;
+    } catch {
+      /* без своей линии */
+    }
+    await this.clearLine();
+    return undefined;
+  }
+
+  async clearLine(): Promise<void> {
+    try {
+      await this.kv.del(LINE_KEY);
     } catch {
       /* нечего чистить */
     }

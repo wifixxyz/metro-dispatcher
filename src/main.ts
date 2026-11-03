@@ -6,7 +6,9 @@ import { Sound } from './audio/sound';
 import { Game } from './game';
 import { Haptics } from './haptics/haptics';
 import { Storage } from './storage/save';
+import { openEditor } from './editor/ui';
 import { NEKRASOVSKAYA } from './lines';
+import { validateLine } from './lines/validate';
 import { buildLayout } from './render/layout';
 import { Scene } from './render/scene';
 import { Controller } from './ui/controller';
@@ -32,6 +34,12 @@ async function main(): Promise<void> {
 
   const storage = new Storage();
   const settings = await storage.loadSettings();
+  // Своя линия из редактора (если сохранена и проходит проверку), иначе Некрасовская.
+  const customRaw = await storage.loadLine();
+  const customCheck = customRaw ? validateLine(customRaw) : undefined;
+  const line = customCheck?.ok && customCheck.config ? customCheck.config : NEKRASOVSKAYA;
+  if (customRaw && !customCheck?.ok) await storage.clearLine();
+  const firstMode = line.modes?.[0]?.id ?? '';
   const sound = new Sound();
   sound.enabled = settings.sound;
   sound.setAmbient(settings.ambient);
@@ -43,23 +51,23 @@ async function main(): Promise<void> {
   // Продолжение смены после перезапуска: проигрываем сохранённые действия на тех же шагах.
   let game: Game;
   const save = await storage.loadShift();
-  const known = save && NEKRASOVSKAYA.modes?.some((m) => m.id === save.mode);
+  const known = save && line.modes?.some((m) => m.id === save.mode);
   if (save && known) {
     const overlay = document.createElement('div');
     overlay.className = 'overlay';
     overlay.dataset['testid'] = 'restoring';
     root.append(overlay);
     try {
-      game = await Game.restore(NEKRASOVSKAYA, save, (f) => {
+      game = await Game.restore(line, save, (f) => {
         overlay.textContent = `Восстановление смены… ${Math.round(f * 100)}%`;
       });
     } catch {
       await storage.clearShift();
-      game = new Game(NEKRASOVSKAYA, { mode: 'nk-ng', interval: 180 });
+      game = new Game(line, { mode: firstMode, interval: 180 });
     }
     overlay.remove();
   } else {
-    game = new Game(NEKRASOVSKAYA, { mode: 'nk-ng', interval: 180 });
+    game = new Game(line, { mode: firstMode, interval: 180 });
   }
   game.onSignal = (s) => {
     if (s.kind === 'switch') sound.play('click', s.player ? 1 : game.speed <= 2 ? 0.3 : 0);
@@ -77,7 +85,7 @@ async function main(): Promise<void> {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') saveNow();
   });
-  const layout = buildLayout(NEKRASOVSKAYA, game.graph);
+  const layout = buildLayout(line, game.graph);
   const margin = 80;
   const world = {
     x: layout.bounds.x0 - margin,
@@ -130,6 +138,27 @@ async function main(): Promise<void> {
       haptics.enabled = st.haptics;
       void storage.saveSettings(st);
     },
+    onEditor() {
+      openEditor(root, {
+        initial: line,
+        isDefault: line === NEKRASOVSKAYA,
+        onClose: () => undefined,
+        onPlay(cfg) {
+          void (async () => {
+            await storage.saveLine(cfg);
+            await storage.clearShift();
+            location.reload();
+          })();
+        },
+        onReset() {
+          void (async () => {
+            await storage.clearLine();
+            await storage.clearShift();
+            location.reload();
+          })();
+        },
+      });
+    },
     onNewShift() {
       game.newShift();
       scene.setGame(game);
@@ -168,6 +197,7 @@ async function main(): Promise<void> {
     },
     state: () => ({
       mode: game.mode,
+      line: line.id,
       simTime: game.sim.t,
       speed: game.speed,
       paused: game.paused,
