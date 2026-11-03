@@ -1,6 +1,6 @@
 {
   "name": "metro-dispatcher",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Метро · Диспетчер — симулятор поездного диспетчера",
@@ -25,5 +25,8 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
   }
 }
