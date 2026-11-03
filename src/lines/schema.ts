@@ -10,6 +10,8 @@ export const EdgeSchema = z.object({
   /** Ограничение скорости, км/ч. */
   speedKmh: z.number().positive(),
   track: z.string().optional(),
+  /** Сооружение для 3D-вида: тоннель, эстакада или поверхность. По умолчанию — поверхность. */
+  structure: z.enum(['tunnel', 'viaduct', 'ground']).optional(),
   /** Значение приблизительное (нет точных открытых данных). */
   approx: z.boolean().optional(),
 });

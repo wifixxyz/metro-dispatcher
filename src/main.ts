@@ -7,6 +7,7 @@ import { Game } from './game';
 import { Haptics } from './haptics/haptics';
 import { Storage } from './storage/save';
 import { openEditor } from './editor/ui';
+import type { View3D } from './render3d/view';
 import { NEKRASOVSKAYA } from './lines';
 import { validateLine } from './lines/validate';
 import { buildLayout } from './render/layout';
@@ -22,6 +23,8 @@ interface MetroDebug {
   signalScreen(block: string): { x: number; y: number } | undefined;
   switchScreen(node: string): { x: number; y: number } | undefined;
   focus(node: string, scale: number): void;
+  v3TrainScreen(): { id: string; x: number; y: number } | undefined;
+  v3Select(id: string): void;
   trainScreen(): { id: string; x: number; y: number } | undefined;
 }
 
@@ -94,6 +97,12 @@ async function main(): Promise<void> {
     h: layout.bounds.y1 - layout.bounds.y0 + 2 * margin,
   };
 
+  const view3dEl = document.createElement('div');
+  view3dEl.id = 'view3d';
+  root.append(view3dEl);
+  let view: '2d' | '3d' = '2d';
+  let v3: View3D | undefined;
+
   const app = new Application();
   await app.init({
     resizeTo: mapEl,
@@ -129,6 +138,7 @@ async function main(): Promise<void> {
     onMode(id) {
       game.reset(id);
       scene.setGame(game);
+      v3?.setGame(game);
       saveNow();
       panel.setGame(game);
     },
@@ -137,6 +147,17 @@ async function main(): Promise<void> {
       sound.setAmbient(st.ambient);
       haptics.enabled = st.haptics;
       void storage.saveSettings(st);
+    },
+    onView() {
+      void setView(view === '2d' ? '3d' : '2d');
+    },
+    onCam(kind) {
+      if (!v3) return;
+      if (kind === 'overview') {
+        v3.select(undefined);
+        v3.overview(true);
+      } else if (kind === 'focus') v3.focusSelected();
+      else v3.setCab(!v3.cab);
     },
     onEditor() {
       openEditor(root, {
@@ -162,6 +183,7 @@ async function main(): Promise<void> {
     onNewShift() {
       game.newShift();
       scene.setGame(game);
+      v3?.setGame(game);
       panel.setGame(game);
       saveNow();
     },
@@ -178,9 +200,31 @@ async function main(): Promise<void> {
     viewport.resize(w, h, world.w, world.h);
   });
 
+  const setView = async (next: '2d' | '3d'): Promise<void> => {
+    if (next === '3d' && !v3) {
+      panel.showToast('Загрузка 3D…');
+      // Three.js подгружается только при первом переключении.
+      const { View3D: V } = await import('./render3d/view');
+      v3 = new V(view3dEl, game, {
+        onSelect(id) {
+          v3?.select(id);
+          if (id) panel.showToast(`Выбран поезд ${id.replace(/^\D+/, '')}`);
+        },
+      });
+    }
+    view = next;
+    app.stage.visible = next === '2d';
+    panel.setView(next);
+    if (next === '3d') v3?.resize();
+  };
+
   app.ticker.add((t) => {
     game.advance(Math.min(t.deltaMS, 100) / 1000);
-    scene.update();
+    if (view === '2d') scene.update();
+    else if (v3) {
+      v3.update(t.deltaMS, game.paused);
+      panel.setHud(v3.hudText(), v3.selected !== undefined && v3.hudText() !== '', v3.cab);
+    }
     panel.update();
   });
 
@@ -189,6 +233,12 @@ async function main(): Promise<void> {
     signalScreen: (b) => scene.signalScreen(b),
     switchScreen: (n) => scene.switchScreen(n),
     focus: (n, sc) => scene.focusNode(n, sc),
+    v3TrainScreen: () => {
+      const tr = game.sim.trains.find((t) => t.phase !== 'done');
+      const p = tr && v3 ? v3.trainScreen(tr.id) : undefined;
+      return tr && p ? { id: tr.id, ...p } : undefined;
+    },
+    v3Select: (id) => v3?.select(id),
     trainScreen: () => {
       const tr = game.sim.trains.find((t) => t.phase !== 'done');
       if (!tr) return undefined;
@@ -211,6 +261,8 @@ async function main(): Promise<void> {
       manualLine: game.manualLine,
       interventions: game.interventions,
       selected: scene.selected ?? null,
+      view,
+      v3: v3 ? v3.stats() : null,
       routes: game.sim.il.routes.size,
       scale: viewport.scale.x,
     }),

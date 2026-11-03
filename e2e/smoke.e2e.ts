@@ -56,8 +56,9 @@ test('кнопки не меньше 44 px и помещаются в экран
       return { w: r.width, h: r.height, right: r.right, bottom: r.bottom, id: (e as HTMLElement).dataset['testid'] ?? e.tagName };
     }),
   );
-  expect(boxes.length).toBeGreaterThanOrEqual(12);
-  for (const b of boxes) {
+  const shown = boxes.filter((b) => b.w > 0 && b.h > 0); // панель камеры 3D скрыта в 2D
+  expect(shown.length).toBeGreaterThanOrEqual(12);
+  for (const b of shown) {
     expect(b.w, b.id).toBeGreaterThanOrEqual(43.5);
     expect(b.h, b.id).toBeGreaterThanOrEqual(43.5);
     expect(b.right, b.id).toBeLessThanOrEqual(390);
@@ -277,7 +278,10 @@ test('редактор: ошибки понятны, правка формами
 
   // Запуск: страница перезагружается уже с новой линией.
   await page.getByTestId('editor-play').click();
-  await page.waitForFunction(() => '__metro' in window && (window as never as { __metro: { state(): { line: string; frames: number } } }).__metro.state().frames > 3);
+  await expect
+    .poll(() => page.evaluate(() => (window as never as { __metro?: { state(): { line: string; frames: number } } }).__metro?.state().line).catch(() => undefined), { timeout: 15000 })
+    .toBe('mini');
+  await page.waitForFunction(() => (window as never as { __metro: { state(): { frames: number } } }).__metro.state().frames > 3);
   const s = (await state(page)) as unknown as { line: string; mode: string; trains: number; trainsDrawn: number; violations: number };
   expect(s.line).toBe('mini');
   expect(s.mode).toBe('all');
@@ -291,4 +295,54 @@ test('редактор: ошибки понятны, правка формами
   await expect
     .poll(() => page.evaluate(() => (window as never as { __metro?: { state(): { line: string } } }).__metro?.state().line).catch(() => undefined), { timeout: 15000 })
     .toBe('nekrasovskaya');
+});
+
+test('3D-вид: переключение, сцена из ядра, выбор поезда, вид из кабины, бюджет', async ({ page }) => {
+  const errors = await open(page);
+  const st3 = () =>
+    page.evaluate(() => (window as never as { __metro: { state(): { view: string; v3: Record<string, number | boolean | string | null> | null } } }).__metro.state());
+  await page.getByTestId('view-toggle').click();
+  await expect.poll(async () => (await st3()).view).toBe('3d');
+  await expect.poll(async () => ((await st3()).v3?.['frames'] as number) ?? 0, { timeout: 20000 }).toBeGreaterThan(5);
+  await expect(page.getByTestId('hud')).toBeVisible();
+  await expect(page.getByTestId('view-toggle')).toHaveText('2D');
+
+  const s = (await st3()).v3!;
+  const trains = (await state(page)).trains;
+  expect(s['trainsVisible']).toBe(Math.min(trains, 96));
+  expect(s['signals'] as number).toBeGreaterThan(30);
+  // Бюджет для телефона: мало вызовов отрисовки и треугольников.
+  expect(s['calls'] as number).toBeLessThanOrEqual(30);
+  expect(s['triangles'] as number).toBeLessThan(150_000);
+  expect(s['staticTriangles'] as number).toBeLessThan(120_000);
+  const png = await page.locator('#view3d canvas').screenshot();
+  expect(png.length).toBeGreaterThan(8_000);
+
+  // Выбор поезда и вид из кабины.
+  const tr = await page.evaluate(() => (window as never as { __metro: { v3TrainScreen(): { id: string } | undefined } }).__metro.v3TrainScreen());
+  expect(tr).toBeTruthy();
+  await page.evaluate((id) => (window as never as { __metro: { v3Select(i: string): void } }).__metro.v3Select(id), tr!.id);
+  await expect(page.getByTestId('cam-cab')).toBeEnabled();
+  await page.getByTestId('cam-cab').click();
+  await expect.poll(async () => (await st3()).v3?.['cab']).toBe(true);
+  await expect(page.getByTestId('hud-text')).toContainText('км/ч');
+  await expect(page.getByTestId('cam-cab')).toHaveText('Выйти из кабины');
+  const f0 = ((await st3()).v3?.['frames'] as number) ?? 0;
+  await page.waitForTimeout(1500);
+  expect(((await st3()).v3?.['frames'] as number) - f0).toBeGreaterThan(3);
+  await page.getByTestId('cam-cab').click();
+  await expect.poll(async () => (await st3()).v3?.['cab']).toBe(false);
+  await page.getByTestId('cam-overview').click();
+
+  // Смена режима пересобирает сцену; возврат в 2D.
+  await page.getByTestId('mode').selectOption('lh-ks');
+  await expect.poll(async () => (await state(page)).mode).toBe('lh-ks');
+  await page.waitForTimeout(500);
+  expect((await st3()).v3!['trainsVisible']).toBe((await state(page)).trains);
+  await page.getByTestId('view-toggle').click();
+  await expect.poll(async () => (await st3()).view).toBe('2d');
+  const fr = (await state(page)).frames;
+  await page.waitForTimeout(500);
+  expect((await state(page)).frames).toBeGreaterThan(fr);
+  expect(errors).toEqual([]);
 });
