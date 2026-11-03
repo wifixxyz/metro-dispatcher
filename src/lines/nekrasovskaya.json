@@ -581,5 +581,35 @@
   ],
   "fleet": 60,
   "approx": true
+ },
+ "layout": {
+  "nodes": {
+   "dep-a": {
+    "station": "lh",
+    "dx": -120,
+    "dy": 95
+   },
+   "dep-b": {
+    "station": "lh",
+    "dx": 120,
+    "dy": 95
+   }
+  },
+  "bends": {
+   "dep-1": [
+    {
+     "station": "lh",
+     "dx": 0,
+     "dy": 82
+    }
+   ],
+   "dep-2": [
+    {
+     "station": "lh",
+     "dx": 0,
+     "dy": 108
+    }
+   ]
+  }
  }
 }

@@ -49,6 +49,8 @@ export class Interlocking {
   /** Нарушения: два состава в одном блок-участке и т. п. */
   readonly violations: string[] = [];
   readonly approachDelay: number;
+  /** Растёт при любом изменении занятости или замыканий (для перерисовки). */
+  version = 0;
   private readonly byEdge = new Map<string, Block[]>();
   private readonly occupants = new Map<string, string[]>();
   private readonly blockLock = new Map<string, string>();
@@ -107,6 +109,7 @@ export class Interlocking {
     if (list.length > 0) this.violations.push(`Блок ${blockId}: ${train} въехал при ${list.join(',')}`);
     list.push(train);
     this.occupants.set(blockId, list);
+    this.version++;
   }
 
   vacate(blockId: string, train: string): void {
@@ -115,6 +118,7 @@ export class Interlocking {
     const i = list.indexOf(train);
     if (i >= 0) list.splice(i, 1);
     if (list.length === 0) this.occupants.delete(blockId);
+    this.version++;
   }
 
   occupantsOf(blockId: string): readonly string[] {
@@ -160,6 +164,7 @@ export class Interlocking {
     this.routes.set(id, route);
     for (const bid of blockIds) this.blockLock.set(bid, id);
     for (const [node, edge] of points) this.pointLock.set(node, { edge, route: id });
+    this.version++;
     return { ok: true };
   }
 
@@ -198,6 +203,7 @@ export class Interlocking {
     if (i < 0) return;
     r.blocks.splice(i, 1);
     this.blockLock.delete(bid);
+    this.version++;
     const b = this.block(bid);
     const pl = this.pointLock.get(b.fromNode);
     if (b.index === 0 && pl && pl.route === r.id) this.pointLock.delete(b.fromNode);
@@ -216,6 +222,41 @@ export class Interlocking {
         r.releaseAt = undefined;
       }
     }
+  }
+
+  /** Занятые блок-участки. */
+  occupiedBlocks(): string[] {
+    return [...this.occupants.keys()];
+  }
+
+  /** Замкнутые маршрутом блок-участки. */
+  lockedBlocks(): string[] {
+    return [...this.blockLock.keys()];
+  }
+
+  /** Следующий блок-участок по ходу: следом на участке, иначе по замкнутой стрелке или единственный. */
+  private following(b: Block): Block | undefined {
+    const list = this.byEdge.get(b.edge);
+    const nxt = list?.[b.index + 1];
+    if (nxt) return nxt;
+    const outs = this.graph.outEdges(b.toNode);
+    const pl = this.pointLock.get(b.toNode);
+    const e = outs.length === 1 ? outs[0] : outs.find((x) => x.id === pl?.edge);
+    return e ? this.byEdge.get(e.id)?.[0] : undefined;
+  }
+
+  /** Показание светофора на входе в блок-участок (для отображения). */
+  aspectOfBlock(blockId: string): Aspect {
+    const b = this.block(blockId);
+    if (this.isOccupied(b.id) || (b.controlled && !this.blockLock.has(b.id))) return 'red';
+    let free = 0;
+    let cur = this.following(b);
+    while (cur && free < 2) {
+      if (this.isOccupied(cur.id) || (cur.controlled && !this.blockLock.has(cur.id))) break;
+      free++;
+      cur = this.following(cur);
+    }
+    return aspectFor(true, cur || free >= 2 ? free : 2);
   }
 
   /** Проверка: нет пересекающихся маршрутов и стрелок в двух положениях. */

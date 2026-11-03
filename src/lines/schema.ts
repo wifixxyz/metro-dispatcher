@@ -50,6 +50,18 @@ export const DepotSchema = z.object({
   approx: z.boolean().optional(),
 });
 
+/** Точка схемы относительно центра станции (единицы схемы). */
+export const AnchorSchema = z.object({ station: z.string(), dx: z.number(), dy: z.number() });
+
+/**
+ * Расположение на схеме. Станции и их пути размещаются автоматически;
+ * здесь — узлы вне станций (депо) и изгибы отдельных участков.
+ */
+export const LayoutSchema = z.object({
+  nodes: z.record(z.string(), AnchorSchema).optional(),
+  bends: z.record(z.string(), z.array(AnchorSchema)).optional(),
+});
+
 export const LineConfigSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -58,10 +70,12 @@ export const LineConfigSchema = z.object({
   stations: z.array(StationSchema).min(1),
   modes: z.array(ModeSchema).optional(),
   depot: DepotSchema.optional(),
+  layout: LayoutSchema.optional(),
 });
 
 export type EdgeConfig = z.infer<typeof EdgeSchema>;
 export type StationConfig = z.infer<typeof StationSchema>;
 export type ModeConfig = z.infer<typeof ModeSchema>;
+export type LayoutConfig = z.infer<typeof LayoutSchema>;
 export type DepotConfig = z.infer<typeof DepotSchema>;
 export type LineConfig = z.infer<typeof LineConfigSchema>;

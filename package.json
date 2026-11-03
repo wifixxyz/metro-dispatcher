@@ -1,6 +1,6 @@
 {
   "name": "metro-dispatcher",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "description": "Метро · Диспетчер — симулятор поездного диспетчера",
@@ -10,10 +10,12 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@playwright/test": "^1.64.1",
     "@types/node": "^22.0.0",
     "eslint": "^9.0.0",
     "globals": "^16.0.0",
@@ -27,6 +29,8 @@
     "node": ">=20"
   },
   "dependencies": {
+    "pixi-viewport": "^7.0.0",
+    "pixi.js": "^8.22.0",
     "zod": "^4.6.7"
   }
 }
