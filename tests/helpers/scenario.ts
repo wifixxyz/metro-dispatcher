@@ -1,3 +1,4 @@
+import { modeRoutes } from '../../src/core/dispatcher';
 import { Graph } from '../../src/core/graph';
 import { Sim, type SimOptions, type TrainState } from '../../src/core/sim';
 import { NEKRASOVSKAYA } from '../../src/lines';
@@ -28,7 +29,7 @@ export function runScenario(
 ): ScenarioResult {
   const g = new Graph(NEKRASOVSKAYA);
   const sim = new Sim(g, { seed: 42, ...opts });
-  const route = g.findPath('nk-I', 'nk-II');
+  const route = modeRoutes(g, NEKRASOVSKAYA, 'nk-ng').oneWay;
   const launchTimes: number[] = [];
   let next = 0;
   let n = 0;

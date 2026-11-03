@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { modeRoutes } from '../src/core/dispatcher';
 import { Graph } from '../src/core/graph';
 import { DEFAULT_TRAIN, brakingDistance, speedForDistance, tractionAccel } from '../src/core/physics';
 import { Sim, createRng } from '../src/core/sim';
@@ -25,7 +26,7 @@ describe('конфиг и граф', () => {
     expect(() => new Graph({ ...NEKRASOVSKAYA, nodes: [] })).toThrow();
   });
   it('путь Некрасовка I → Некрасовка II проходит все станции и оборот', () => {
-    const path = graph().findPath('nk-I', 'nk-II');
+    const path = modeRoutes(graph(), NEKRASOVSKAYA, 'nk-ng').oneWay;
     expect(path).toContain('ng-turn');
     expect(path).toContain('st-ng-I');
     expect(path.at(-1)).toBe('nk-II');
@@ -70,7 +71,7 @@ describe('один поезд по всей линии', () => {
   const run = (seed: number) => {
     const g = graph();
     const sim = new Sim(g, { seed });
-    const tr = sim.addTrain('T1', g.findPath('nk-I', 'nk-II'));
+    const tr = sim.addTrain('T1', modeRoutes(g, NEKRASOVSKAYA, 'nk-ng').oneWay);
     let maxOver = 0;
     let steps = 0;
     while (tr.phase !== 'done' && sim.t < 7200) {

@@ -22,14 +22,46 @@ export const StationSchema = z.object({
   stops: z.array(z.object({ edge: z.string(), at: z.number().nonnegative() })).min(1),
 });
 
+/**
+ * Режим работы: пара оборотных станций. Путь I — `stops[0]`, путь II — `stops[1]` станции.
+ * `turnWest`/`turnEast` — съезды оборота (II → I у западной, I → II у восточной).
+ */
+export const ModeSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  west: z.string().min(1),
+  east: z.string().min(1),
+  turnWest: z.string().min(1),
+  turnEast: z.string().min(1),
+});
+
+/** Депо: вход (с пути II у станции), деповские пути, выход на путь I в сторону конечной. */
+export const DepotSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  station: z.string().min(1),
+  entry: z.string().min(1),
+  exit: z.string().min(1),
+  /** Участок пути I, на который выходит состав из депо (контрольная точка выпуска). */
+  join: z.string().min(1),
+  tracks: z.array(z.object({ edge: z.string(), at: z.number().nonnegative() })).min(1),
+  /** Парк депо, составов. */
+  fleet: z.number().int().positive(),
+  approx: z.boolean().optional(),
+});
+
 export const LineConfigSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   nodes: z.array(z.string().min(1)),
   edges: z.array(EdgeSchema).min(1),
   stations: z.array(StationSchema).min(1),
+  modes: z.array(ModeSchema).optional(),
+  depot: DepotSchema.optional(),
 });
 
 export type EdgeConfig = z.infer<typeof EdgeSchema>;
 export type StationConfig = z.infer<typeof StationSchema>;
+export type ModeConfig = z.infer<typeof ModeSchema>;
+export type DepotConfig = z.infer<typeof DepotSchema>;
 export type LineConfig = z.infer<typeof LineConfigSchema>;
