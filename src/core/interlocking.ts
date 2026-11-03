@@ -51,6 +51,8 @@ export class Interlocking {
   readonly approachDelay: number;
   /** Растёт при любом изменении занятости или замыканий (для перерисовки). */
   version = 0;
+  /** Вызывается, когда стрелка встала в новое положение. */
+  onPoints: ((node: string, edge: string) => void) | undefined;
   private readonly byEdge = new Map<string, Block[]>();
   private readonly occupants = new Map<string, string[]>();
   private readonly blockLock = new Map<string, string>();
@@ -170,6 +172,7 @@ export class Interlocking {
     if (!can.ok) return can;
     this.pointPos.set(node, edge);
     this.version++;
+    this.onPoints?.(node, edge);
     return { ok: true };
   }
 
@@ -217,7 +220,9 @@ export class Interlocking {
     for (const bid of blockIds) this.blockLock.set(bid, id);
     for (const [node, edge] of points) {
       this.pointLock.set(node, { edge, route: id });
+      const prev = this.pointPosition(node);
       this.pointPos.set(node, edge);
+      if (prev !== edge) this.onPoints?.(node, edge);
     }
     this.version++;
     return { ok: true };
