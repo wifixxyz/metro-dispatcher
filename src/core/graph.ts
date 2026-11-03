@@ -17,6 +17,7 @@ export class Graph {
   readonly edges = new Map<string, Edge>();
   readonly stations: StationConfig[];
   private readonly out = new Map<string, Edge[]>();
+  private readonly inc = new Map<string, Edge[]>();
 
   constructor(cfg: LineConfig) {
     const nodes = new Set(cfg.nodes);
@@ -40,6 +41,19 @@ export class Graph {
     const list = this.out.get(c.from) ?? [];
     list.push(e);
     this.out.set(c.from, list);
+    const inList = this.inc.get(c.to) ?? [];
+    inList.push(e);
+    this.inc.set(c.to, inList);
+  }
+
+  /** Участки, выходящие из узла. */
+  outEdges(node: string): Edge[] {
+    return this.out.get(node) ?? [];
+  }
+
+  /** Участки, входящие в узел. */
+  inEdges(node: string): Edge[] {
+    return this.inc.get(node) ?? [];
   }
 
   edge(id: string): Edge {

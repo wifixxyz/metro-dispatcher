@@ -17,7 +17,7 @@ export interface TrainParams {
 /** Типовой 8-вагонный состав (значения приблизительные). */
 export const DEFAULT_TRAIN: TrainParams = {
   massKg: 400_000,
-  lengthM: 152,
+  lengthM: 148,
   maxSpeed: 80 / 3.6,
   tractionN: 340_000,
   resistBaseN: 4_000,
