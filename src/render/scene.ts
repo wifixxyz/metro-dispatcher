@@ -29,6 +29,13 @@ const ASPECT_COLOR = {
 const LOD_DETAIL = 0.9;
 const LOD_LABELS = 0.6;
 
+export type Hit =
+  | { kind: 'train'; id: string }
+  | { kind: 'switch'; node: string }
+  | { kind: 'signal'; block: string }
+  /** Рядом есть светофор или стрелка, но масштаб слишком мелкий для точного касания. */
+  | { kind: 'far' };
+
 export interface SceneStats {
   trainsDrawn: number;
   edgesDrawn: number;
@@ -56,6 +63,12 @@ export class Scene {
   private seenVersion = -1;
   private clockT = -Infinity;
   private game: Game;
+  private readonly marks = new Graphics();
+  /** Выбранный начальный светофор маршрута. */
+  selected: string | undefined;
+  private seenSel: string | undefined;
+  private seenManual = '';
+  private seenDetail = false;
 
   constructor(
     _app: Application,
@@ -64,7 +77,7 @@ export class Scene {
     game: Game,
   ) {
     this.game = game;
-    this.root.addChild(this.tracks, this.overlay, this.signals, this.clockLayer, this.trainLayer, this.labelLayer);
+    this.root.addChild(this.tracks, this.overlay, this.signals, this.marks, this.clockLayer, this.trainLayer, this.labelLayer);
     viewport.addChild(this.root);
     this.build();
   }
@@ -160,11 +173,15 @@ export class Scene {
     const scale = this.viewport.scale.x;
     const detail = scale >= LOD_DETAIL;
 
-    if (il.version !== this.seenVersion) {
+    const manualKey = `${this.game.manualLine}|${[...this.game.manualNodes].join(',')}`;
+    if (il.version !== this.seenVersion || this.selected !== this.seenSel || manualKey !== this.seenManual || detail !== this.seenDetail) {
       this.seenVersion = il.version;
-      this.drawOverlay();
+      this.seenSel = this.selected;
+      this.seenManual = manualKey;
+      this.seenDetail = detail;
+      this.drawOverlay(detail);
     }
-    this.signals.visible = detail;
+    this.signals.visible = true;
     this.clockLayer.visible = detail;
     this.labelLayer.visible = scale >= LOD_LABELS;
 
@@ -239,7 +256,7 @@ export class Scene {
     }
   }
 
-  private drawOverlay(): void {
+  private drawOverlay(detail: boolean): void {
     const { sim, graph } = this.game;
     const il = sim.il;
     const o = this.overlay;
@@ -254,6 +271,8 @@ export class Scene {
     let n = 0;
     for (const b of il.blocks.values()) {
       if (!active.has(b.edge)) continue;
+      // Внутриучастковые светофоры — только при крупном масштабе; входы на участки и маршрутные — всегда.
+      if (!detail && b.index > 0) continue;
       const line = this.layout.lines.get(b.edge);
       if (!line) continue;
       const len = graph.edge(b.edge).length;
@@ -262,11 +281,118 @@ export class Scene {
       const x = p.x + dir.y * off;
       const y = p.y - dir.x * off;
       const color = ASPECT_COLOR[il.aspectOfBlock(b.id)];
-      s.circle(x, y, 3.2).fill({ color, alpha: 0.25 });
-      s.circle(x, y, 1.8).fill({ color });
+      const big = b.controlled;
+      s.circle(x, y, big ? 4.5 : 3.2).fill({ color, alpha: 0.25 });
+      s.circle(x, y, big ? 2.6 : 1.8).fill({ color });
+      if (this.selected === b.id) s.circle(x, y, 7).stroke({ width: 1.5, color: 0xffffff });
       n++;
     }
     this.stats.signalsDrawn = n;
+
+    // Стрелки: кольцо (зелёное — авто, оранжевое — ручной узел) и риска в сторону текущего положения.
+    const m = this.marks;
+    m.clear();
+    for (const node of il.switchNodes()) {
+      const p = this.layout.nodes.get(node);
+      const pos = il.pointPosition(node);
+      const line = pos ? this.layout.lines.get(pos) : undefined;
+      if (!p || !line) continue;
+      if (!active.has(pos ?? '') && !this.nodeActive(node, active)) continue;
+      const color = this.game.isNodeManual(node) ? 0xff9f43 : 0x5ad19a;
+      m.circle(p.x, p.y, 6).stroke({ width: 1.5, color });
+      const d = pointOnLine(line, 0.02).p;
+      const dx = d.x - p.x;
+      const dy = d.y - p.y;
+      const n2 = Math.hypot(dx, dy) || 1;
+      m.moveTo(p.x, p.y).lineTo(p.x + (dx / n2) * 11, p.y + (dy / n2) * 11).stroke({ width: 2, color });
+    }
+  }
+
+  private nodeActive(node: string, active: Set<string>): boolean {
+    const g = this.game.graph;
+    return [...g.outEdges(node), ...g.inEdges(node)].some((e) => active.has(e.id));
+  }
+
+  /** Что находится под точкой (мировые координаты); радиус касания — 22 экранных пикселя. */
+  hitTest(wx: number, wy: number): Hit | undefined {
+    const scale = this.viewport.scale.x;
+    const r = 22 / scale;
+    const detail = scale >= LOD_DETAIL;
+    const { sim, graph } = this.game;
+    const il = sim.il;
+    const active = this.activeEdges();
+
+    const nearest = (cands: { hit: Hit; x: number; y: number }[], radius: number): Hit | undefined => {
+      let best: { hit: Hit; d: number } | undefined;
+      for (const c of cands) {
+        const d = Math.hypot(c.x - wx, c.y - wy);
+        if (d <= radius && (!best || d < best.d)) best = { hit: c.hit, d };
+      }
+      return best?.hit;
+    };
+    const fixed: { hit: Hit; x: number; y: number }[] = [];
+    for (const node of il.switchNodes()) {
+      const p = this.layout.nodes.get(node);
+      if (p && this.nodeActive(node, active)) fixed.push({ hit: detail ? { kind: 'switch', node } : { kind: 'far' }, x: p.x, y: p.y });
+    }
+    for (const b of il.blocks.values()) {
+      if (!active.has(b.edge) || (!detail && b.index > 0)) continue;
+      const pos = this.signalPos(b.id);
+      if (pos) fixed.push({ hit: detail ? { kind: 'signal', block: b.id } : { kind: 'far' }, x: pos.x, y: pos.y });
+    }
+    // Точные цели (светофор, стрелка) важнее состава, который на них стоит.
+    if (detail) {
+      const exact = nearest(fixed, r * 0.5);
+      if (exact) return exact;
+    }
+    const trains: { hit: Hit; x: number; y: number }[] = [];
+    for (const tr of sim.trains) {
+      if (tr.phase === 'done') continue;
+      for (const p of trainShape(this.layout, graph, tr).pts) trains.push({ hit: { kind: 'train', id: tr.id }, x: p.x, y: p.y });
+    }
+    return nearest(trains, r) ?? nearest(fixed, r);
+  }
+
+  /** Экранные координаты сигнала (для тестов и подсказок). */
+  signalScreen(blockId: string): { x: number; y: number } | undefined {
+    const p = this.signalPos(blockId);
+    if (!p) return undefined;
+    const s = this.viewport.toScreen(p.x, p.y);
+    return { x: s.x, y: s.y };
+  }
+
+  /** Привести точку в центр экрана с заданным масштабом. */
+  focusNode(node: string, scale: number): void {
+    const p = this.layout.nodes.get(node);
+    if (!p) return;
+    this.viewport.setZoom(scale, true);
+    this.viewport.moveCenter(p.x, p.y);
+  }
+
+  trainHeadScreen(id: string): { x: number; y: number } | undefined {
+    const tr = this.game.sim.trains.find((t) => t.id === id);
+    if (!tr) return undefined;
+    const { pts } = trainShape(this.layout, this.game.graph, tr);
+    const h = pts[pts.length - 1];
+    if (!h) return undefined;
+    const s = this.viewport.toScreen(h.x, h.y);
+    return { x: s.x, y: s.y };
+  }
+
+  switchScreen(node: string): { x: number; y: number } | undefined {
+    const p = this.layout.nodes.get(node);
+    if (!p) return undefined;
+    const s = this.viewport.toScreen(p.x, p.y);
+    return { x: s.x, y: s.y };
+  }
+
+  private signalPos(blockId: string): { x: number; y: number } | undefined {
+    const b = this.game.sim.il.blocks.get(blockId);
+    const line = b ? this.layout.lines.get(b.edge) : undefined;
+    if (!b || !line) return undefined;
+    const len = this.game.graph.edge(b.edge).length;
+    const { p, dir } = pointOnLine(line, b.s0 / len);
+    return { x: p.x + dir.y * 7, y: p.y - dir.x * 7 };
   }
 
   private strokeBlock(g: Graphics, id: string, color: number, width: number, edgeLen: number): void {
