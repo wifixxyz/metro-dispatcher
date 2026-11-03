@@ -1,22 +1,116 @@
 import './style.css';
+import { Application } from 'pixi.js';
+import { Viewport } from 'pixi-viewport';
 import { registerSW } from 'virtual:pwa-register';
-import { APP_STAGE, APP_TITLE } from './meta';
+import { Game } from './game';
+import { NEKRASOVSKAYA } from './lines';
+import { buildLayout } from './render/layout';
+import { Scene } from './render/scene';
+import { Panel } from './ui/panel';
 
 declare const __APP_VERSION__: string;
 
-function mount(root: HTMLElement): void {
-  const title = document.createElement('h1');
-  title.textContent = APP_TITLE;
-
-  const stage = document.createElement('p');
-  stage.className = 'stage';
-  stage.textContent = `${APP_STAGE} · v${__APP_VERSION__}`;
-
-  root.append(title, stage);
+interface MetroDebug {
+  version: string;
+  state(): Record<string, unknown>;
 }
 
-const root = document.getElementById('app');
-if (!root) throw new Error('Не найден контейнер #app');
-mount(root);
+async function main(): Promise<void> {
+  const root = document.getElementById('app');
+  if (!root) throw new Error('Не найден контейнер #app');
+  const mapEl = document.createElement('div');
+  mapEl.id = 'map';
+  root.append(mapEl);
+
+  const game = new Game(NEKRASOVSKAYA, { mode: 'nk-ng', interval: 180 });
+  const layout = buildLayout(NEKRASOVSKAYA, game.graph);
+  const margin = 80;
+  const world = {
+    x: layout.bounds.x0 - margin,
+    y: layout.bounds.y0 - margin,
+    w: layout.bounds.x1 - layout.bounds.x0 + 2 * margin,
+    h: layout.bounds.y1 - layout.bounds.y0 + 2 * margin,
+  };
+
+  const app = new Application();
+  await app.init({
+    resizeTo: mapEl,
+    background: '#0b0e14',
+    antialias: true,
+    autoDensity: true,
+    resolution: Math.min(window.devicePixelRatio || 1, 2),
+    preference: 'webgl',
+  });
+  mapEl.append(app.canvas);
+
+  const viewport = new Viewport({
+    screenWidth: app.screen.width,
+    screenHeight: app.screen.height,
+    worldWidth: world.w,
+    worldHeight: world.h,
+    events: app.renderer.events,
+  });
+  viewport.drag().pinch().wheel().decelerate();
+  viewport.clampZoom({ minScale: 0.15, maxScale: 6 });
+  app.stage.addChild(viewport);
+
+  const fit = (): void => {
+    // Ширина линии — главный размер; по высоте оставляем место под панели.
+    const scale = Math.max(0.1, Math.min(app.screen.width / world.w, app.screen.height / (world.h * 1.4)));
+    viewport.setZoom(scale, true);
+    viewport.moveCenter(world.x + world.w / 2, world.y + world.h / 2 + 20);
+  };
+  fit();
+
+  const scene = new Scene(app, viewport, layout, game);
+  const panel = new Panel(root, game, {
+    onMode(id) {
+      game.reset(id);
+      scene.setGame(game);
+      panel.setGame(game);
+    },
+    onZoom(kind) {
+      if (kind === 'fit') fit();
+      else viewport.setZoom(viewport.scale.x * (kind === 'in' ? 1.5 : 1 / 1.5), true);
+    },
+  });
+
+  app.renderer.on('resize', (w: number, h: number) => {
+    viewport.resize(w, h, world.w, world.h);
+  });
+
+  app.ticker.add((t) => {
+    game.advance(Math.min(t.deltaMS, 100) / 1000);
+    scene.update();
+    panel.update();
+  });
+
+  const debug: MetroDebug = {
+    version: __APP_VERSION__,
+    state: () => ({
+      mode: game.mode,
+      simTime: game.sim.t,
+      speed: game.speed,
+      paused: game.paused,
+      interval: game.interval,
+      trains: game.sim.trains.length,
+      trainsDrawn: scene.stats.trainsDrawn,
+      edgesDrawn: scene.stats.edgesDrawn,
+      signalsDrawn: scene.stats.signalsDrawn,
+      frames: scene.stats.frames,
+      violations: game.sim.il.violations.length,
+      scale: viewport.scale.x,
+    }),
+  };
+  (window as unknown as { __metro: MetroDebug }).__metro = debug;
+}
+
+main().catch((e: unknown) => {
+  const box = document.createElement('pre');
+  box.textContent = `Ошибка запуска: ${e instanceof Error ? e.message : String(e)}`;
+  box.style.color = '#ff5d5d';
+  document.body.append(box);
+  throw e;
+});
 
 registerSW({ immediate: true });

@@ -166,6 +166,21 @@ export class Dispatcher {
     return { active, required, missing: Math.max(0, required - active - this.stored), inDepot: this.stored };
   }
 
+  /** Время последнего отправления со станции по пути (участку), с; `undefined`, если не было. */
+  lastDepartAt(edge: string): number | undefined {
+    return this.lastDepart.get(edge);
+  }
+
+  /** Все события симуляции уже обработаны диспетчером. */
+  eventsConsumed(): boolean {
+    return this.seen >= this.sim.events.length;
+  }
+
+  /** Сбросить курсор событий (после очистки `sim.events`). */
+  resetEventCursor(): void {
+    this.seen = 0;
+  }
+
   /** Вызывать после каждого шага `sim.step()`. */
   update(): void {
     const sim = this.sim;
