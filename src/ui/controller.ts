@@ -9,31 +9,62 @@ export class Controller {
     private readonly scene: Scene,
     private readonly panel: Panel,
   ) {
+    void 0;
     panel.onAuto = () => {
       game.setLineManual(!game.manualLine);
       panel.showToast(game.manualLine ? 'Вся линия в ручном режиме: автомат не ставит маршруты' : 'Автомат включён', false);
     };
   }
 
-  tap(hit: Hit | undefined): void {
+  /** Включить/выключить режим «Задать маршрут» с пошаговой подсказкой. */
+  toggleRouteMode(): void {
+    const { scene } = this;
+    scene.routeMode = !scene.routeMode;
+    scene.selected = undefined;
+    this.panel.hideCard();
+    this.hint();
+  }
+
+  private hint(): void {
+    const { scene, panel } = this;
+    if (!scene.routeMode) panel.setRouteHint('', false);
+    else if (scene.selected) panel.setRouteHint('Шаг 2 из 2: коснитесь светофора, где маршрут заканчивается', true);
+    else panel.setRouteHint('Шаг 1 из 2: коснитесь светофора, с которого начинается маршрут', true);
+  }
+
+  tap(hit: Hit | undefined, wx = 0, wy = 0): void {
     const { game, scene, panel } = this;
     if (!hit) {
       scene.selected = undefined;
       panel.hideCard();
+      this.hint();
       return;
     }
     if (hit.kind === 'far') {
+      if (scene.routeMode) {
+        scene.zoomTo(wx, wy, 1.2);
+        return;
+      }
       panel.showToast('Приблизьте схему, чтобы выбрать светофор или стрелку');
       return;
     }
     if (hit.kind === 'signal') this.tapSignal(hit.block);
+    else if (scene.routeMode) panel.showToast('Сейчас нужен светофор: коснитесь кружка у пути', true);
     else {
       scene.selected = undefined;
       if (hit.kind === 'switch') this.switchCard(hit.node);
       else this.trainCard(hit.id);
     }
     void game;
+    this.afterTap();
   }
+
+  private afterTap(): void {
+    if (this.scene.routeMode && !this.scene.selected && this.routeWasSet) this.scene.routeMode = false;
+    this.routeWasSet = false;
+    this.hint();
+  }
+  private routeWasSet = false;
 
   private tapSignal(block: string): void {
     const { game, scene, panel } = this;
@@ -46,6 +77,7 @@ export class Controller {
     if (scene.selected) {
       const r = game.setRoute(scene.selected, block);
       scene.selected = undefined;
+      this.routeWasSet = r.ok;
       panel.showToast(r.ok ? 'Маршрут установлен' : r.reason, !r.ok);
       return;
     }

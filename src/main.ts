@@ -14,6 +14,7 @@ import { buildLayout } from './render/layout';
 import { Scene } from './render/scene';
 import { Controller } from './ui/controller';
 import { Panel } from './ui/panel';
+import { showTourOnce } from './ui/tour';
 
 declare const __APP_VERSION__: string;
 
@@ -89,7 +90,7 @@ async function main(): Promise<void> {
     if (document.visibilityState === 'hidden') saveNow();
   });
   const layout = buildLayout(line, game.graph);
-  const margin = 80;
+  const margin = 40;
   const world = {
     x: layout.bounds.x0 - margin,
     y: layout.bounds.y0 - margin,
@@ -159,6 +160,9 @@ async function main(): Promise<void> {
       } else if (kind === 'focus') v3.focusSelected();
       else v3.setCab(!v3.cab);
     },
+    onRoute() {
+      controller.toggleRouteMode();
+    },
     onEditor() {
       openEditor(root, {
         initial: line,
@@ -194,7 +198,8 @@ async function main(): Promise<void> {
   }, settings);
 
   const controller = new Controller(game, scene, panel);
-  viewport.on('clicked', (e) => controller.tap(scene.hitTest(e.world.x, e.world.y)));
+  showTourOnce(root);
+  viewport.on('clicked', (e) => controller.tap(scene.hitTest(e.world.x, e.world.y), e.world.x, e.world.y));
 
   app.renderer.on('resize', (w: number, h: number) => {
     viewport.resize(w, h, world.w, world.h);
@@ -265,6 +270,7 @@ async function main(): Promise<void> {
       v3: v3 ? v3.stats() : null,
       routes: game.sim.il.routes.size,
       scale: viewport.scale.x,
+      fitWidth: (world.w * viewport.scale.x) / app.screen.width,
     }),
   };
   (window as unknown as { __metro: MetroDebug }).__metro = debug;
