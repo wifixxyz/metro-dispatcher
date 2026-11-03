@@ -18,8 +18,9 @@ interface State {
 const state = (page: Page): Promise<State> =>
   page.evaluate(() => (window as unknown as { __metro: { state(): unknown } }).__metro.state() as never);
 
-async function open(page: Page): Promise<string[]> {
+async function open(page: Page, tour = false): Promise<string[]> {
   const errors: string[] = [];
+  if (!tour) await page.addInitScript(() => localStorage.setItem('metro.tour.v1', '1'));
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
@@ -145,11 +146,11 @@ test('ручное управление: переключатель линии, 
 
   // Переключатель авто/ручной для всей линии.
   await page.getByTestId('auto-toggle').click();
-  await expect(page.getByTestId('auto-toggle')).toHaveText('Ручной режим');
+  await expect(page.getByTestId('auto-toggle')).toHaveText('Ручной');
   await expect(page.getByTestId('toast')).toContainText('ручном режиме');
   expect(((await state(page)) as unknown as { manualLine: boolean }).manualLine).toBe(true);
   await page.getByTestId('auto-toggle').click();
-  await expect(page.getByTestId('auto-toggle')).toHaveText('Автомат: вкл');
+  await expect(page.getByTestId('auto-toggle')).toHaveText('Авто');
 
   // Маршрут: коснуться начального, затем конечного светофора.
   await page.evaluate(() => (window as never as { __metro: { focus(n: string, s: number): void } }).__metro.focus('lh-I-out', 1.6));
@@ -345,4 +346,34 @@ test('3D-вид: переключение, сцена из ядра, выбор 
   await page.waitForTimeout(500);
   expect((await state(page)).frames).toBeGreaterThan(fr);
   expect(errors).toEqual([]);
+});
+
+test('обучение при первом запуске: 4 подсказки, пропуск запоминается', async ({ page }) => {
+  await open(page, true);
+  await expect(page.getByTestId('tour')).toBeVisible();
+  for (let i = 0; i < 3; i++) await page.getByTestId('tour-next').click();
+  await expect(page.getByTestId('tour-next')).toHaveText('Начать');
+  await page.getByTestId('tour-skip').click();
+  await expect(page.getByTestId('tour')).toHaveCount(0);
+  await page.reload();
+  await page.waitForFunction(() => '__metro' in window);
+  await expect(page.getByTestId('tour')).toHaveCount(0);
+});
+
+test('«Задать маршрут»: подсказка по шагам, приближение по касанию', async ({ page }) => {
+  await open(page);
+  const hint = page.getByTestId('route-hint');
+  await expect(hint).toBeHidden();
+  await page.getByTestId('route-mode').click();
+  await expect(hint).toContainText('Шаг 1 из 2');
+  await expect(page.getByTestId('route-mode')).toHaveText('Отмена');
+  await page.getByTestId('route-mode').click();
+  await expect(hint).toBeHidden();
+});
+
+test('схема вписана по ширине экрана', async ({ page }) => {
+  await open(page);
+  const s = (await state(page)) as unknown as { fitWidth: number };
+  expect(s.fitWidth).toBeGreaterThan(0.9);
+  expect(s.fitWidth).toBeLessThanOrEqual(1.02);
 });

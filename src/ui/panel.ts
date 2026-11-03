@@ -8,6 +8,7 @@ export interface PanelHandlers {
   onNewShift(): void;
   onEditor(): void;
   onView(): void;
+  onRoute(): void;
   onCam(kind: 'overview' | 'cab' | 'focus'): void;
 }
 
@@ -43,7 +44,9 @@ export class Panel {
   private game: Game;
   private readonly clock = el('span', { className: 'clock' });
   private readonly status = el('span', { className: 'status' });
-  private readonly autoBtn = button('Автомат: вкл', 'auto-toggle', () => this.onAuto?.());
+  private readonly autoBtn = button('Авто', 'auto-toggle', () => this.onAuto?.());
+  private readonly routeBtn = button('Задать маршрут', 'route-mode', () => this.handlers.onRoute());
+  private readonly hint = el('div', { className: 'hint' });
   private readonly toast = el('div', { className: 'toast' });
   private readonly card = el('div', { className: 'card' });
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -110,7 +113,10 @@ export class Panel {
     this.toast.dataset['testid'] = 'toast';
     this.card.dataset['testid'] = 'card';
     this.autoBtn.classList.add('wide');
-    const stat = el('div', { className: 'row stat' }, this.clock, this.status, this.autoBtn);
+    this.hint.dataset['testid'] = 'route-hint';
+    this.routeBtn.classList.add('wide');
+    const stat = el('div', { className: 'row stat' }, this.clock, this.status);
+    const modes = el('div', { className: 'row' }, this.autoBtn, this.routeBtn);
 
     const ivRow = el('div', { className: 'row' }, el('span', { className: 'lbl', textContent: 'Интервал' }));
     for (const iv of INTERVALS) {
@@ -129,7 +135,7 @@ export class Panel {
     }
     const sheetBtn = button('☰', 'sheet-toggle', () => this.sheet.classList.toggle('open'), 'Журнал и диагностика');
     spRow.append(sheetBtn);
-    panel.append(stat, ivRow, spRow);
+    panel.append(stat, modes, ivRow, spRow);
 
     this.sheet.dataset['testid'] = 'sheet';
     const setRow = el('div', { className: 'row' });
@@ -160,7 +166,7 @@ export class Panel {
       this.logBox,
     );
 
-    root.append(top, zoom, this.hud, this.toast, this.card, panel, this.sheet);
+    root.append(top, zoom, this.hud, this.hint, this.toast, this.card, panel, this.sheet);
   }
 
   /** Короткое сообщение (в том числе объяснение отказа). */
@@ -192,6 +198,14 @@ export class Panel {
     this.viewBtn.classList.toggle('on', v === '3d');
     this.hud.classList.toggle('show', v === '3d');
     this.root.classList.toggle('v3d', v === '3d');
+  }
+
+  /** Подсказка по шагам для «Задать маршрут»; пустая строка — скрыть. */
+  setRouteHint(text: string, active: boolean): void {
+    this.hint.textContent = text;
+    this.hint.classList.toggle('show', active);
+    this.routeBtn.classList.toggle('on', active);
+    this.routeBtn.textContent = active ? 'Отмена' : 'Задать маршрут';
   }
 
   setHud(text: string, hasTrain: boolean, cab: boolean): void {
@@ -278,7 +292,8 @@ export class Panel {
     this.clock.textContent = formatClock(g.sim.t);
     this.status.textContent = `в работе ${st.active} · расчётно ${st.required} · не хватает ${st.missing}`;
     this.status.classList.toggle('bad', st.missing > 0);
-    this.autoBtn.textContent = g.manualLine ? 'Ручной режим' : 'Автомат: вкл';
+    this.autoBtn.textContent = g.manualLine ? 'Ручной' : 'Авто';
+    this.autoBtn.setAttribute('aria-label', g.manualLine ? 'Режим: ручной. Включить автомат' : 'Режим: авто. Перейти на ручной');
     this.autoBtn.classList.toggle('on', g.manualLine);
     for (const [iv, b] of this.intervalBtns) b.classList.toggle('on', iv === g.interval);
     for (const [sp, b] of this.speedBtns) b.classList.toggle('on', sp === g.speed && !g.paused);

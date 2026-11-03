@@ -27,7 +27,7 @@ const ASPECT_COLOR = {
 
 /** Минимальный масштаб, при котором показываем сигналы, подписи составов и часы. */
 const LOD_DETAIL = 0.9;
-const LOD_LABELS = 0.6;
+const LOD_LABELS = 0;
 
 export type Hit =
   | { kind: 'train'; id: string }
@@ -69,6 +69,11 @@ export class Scene {
   private seenSel: string | undefined;
   private seenManual = '';
   private seenDetail = false;
+  private lastScale = 0;
+  /** Узкий экран: подписи станций вертикально. */
+  narrow = false;
+  /** Режим «Задать маршрут»: касание далёкого светофора приближает схему. */
+  routeMode = false;
 
   constructor(
     _app: Application,
@@ -77,6 +82,7 @@ export class Scene {
     game: Game,
   ) {
     this.game = game;
+    this.narrow = viewport.screenWidth < 600;
     this.root.addChild(this.tracks, this.overlay, this.signals, this.marks, this.clockLayer, this.trainLayer, this.labelLayer);
     viewport.addChild(this.root);
     this.build();
@@ -100,6 +106,7 @@ export class Scene {
 
   private build(): void {
     const { cfg, graph } = this.game;
+    this.lastScale = 0;
     const active = this.activeEdges();
     const depot = cfg.depot;
     const depotEdges = new Set(depot ? [depot.entry, depot.exit, ...depot.tracks.map((t) => t.edge)] : []);
@@ -138,10 +145,11 @@ export class Scene {
       const on = active.has(sc?.stops[0]?.edge ?? '');
       const label = new Text({
         text: st.name,
-        style: { fill: COLORS.text, fontSize: 11, fontFamily: 'system-ui, sans-serif' },
+        style: { fill: COLORS.text, fontSize: 22, fontWeight: '600', fontFamily: 'system-ui, sans-serif' },
       });
-      label.anchor.set(0.5, 1);
+      label.anchor.set(this.narrow ? 0 : 0.5, this.narrow ? 0.5 : 1);
       label.position.set(st.cx, -this.layout.trackHalf - 16);
+      if (this.narrow) label.rotation = -Math.PI / 2;
       label.alpha = on ? 1 : 0.3;
       this.root.addChild(label);
       this.names.push(label);
@@ -181,6 +189,16 @@ export class Scene {
       this.seenDetail = detail;
       this.drawOverlay(detail);
     }
+    if (scale !== this.lastScale) {
+      this.lastScale = scale;
+      // Подписи и номера — постоянного размера на экране (~12 px).
+      const k = Math.min(1 / scale, 6) * 0.55;
+      this.names.forEach((t, i) => {
+        t.scale.set(k);
+        const st = this.layout.stations[i];
+        if (st) t.position.y = -this.layout.trackHalf - 34 * k / 0.55 * 0.55;
+      });
+    }
     this.signals.visible = true;
     this.clockLayer.visible = detail;
     this.labelLayer.visible = scale >= LOD_LABELS;
@@ -196,7 +214,7 @@ export class Scene {
         const body = new Graphics();
         const label = new Text({
           text: tr.id.replace(/^\D+/, ''),
-          style: { fill: 0xffffff, fontSize: 9, fontWeight: '600', fontFamily: 'system-ui, sans-serif' },
+          style: { fill: 0xffffff, fontSize: 22, fontWeight: '700', fontFamily: 'system-ui, sans-serif', stroke: { color: 0x0b0e14, width: 4 } },
         });
         label.anchor.set(0.5, 1);
         this.trainLayer.addChild(body);
@@ -217,16 +235,18 @@ export class Scene {
       b.clear();
       b.moveTo((pts[0] as { x: number }).x, (pts[0] as { y: number }).y);
       for (let i = 1; i < pts.length; i++) b.lineTo((pts[i] as { x: number }).x, (pts[i] as { y: number }).y);
-      b.stroke({ width: 6, color: COLORS.accent, cap: 'butt', join: 'round' });
+      const tw = Math.max(6, Math.min(7 / scale, 40));
+      b.stroke({ width: tw, color: COLORS.accent, cap: 'butt', join: 'round' });
       // Стрелка направления на голове.
       const nx = -dir.y;
       const ny = dir.x;
       b.poly([
-        head.x + dir.x * 7, head.y + dir.y * 7,
-        head.x + nx * 5, head.y + ny * 5,
-        head.x - nx * 5, head.y - ny * 5,
+        head.x + dir.x * tw * 1.2, head.y + dir.y * tw * 1.2,
+        head.x + nx * tw * 0.9, head.y + ny * tw * 0.9,
+        head.x - nx * tw * 0.9, head.y - ny * tw * 0.9,
       ]).fill({ color: COLORS.accent });
-      sp.label.position.set(head.x, head.y - 9);
+      sp.label.scale.set(Math.min(1 / scale, 6) * 0.6);
+      sp.label.position.set(head.x, head.y - tw * 1.2 - 2 / scale);
       drawn++;
     }
     for (const [id, sp] of this.sprites) {
@@ -359,6 +379,12 @@ export class Scene {
     if (!p) return undefined;
     const s = this.viewport.toScreen(p.x, p.y);
     return { x: s.x, y: s.y };
+  }
+
+  /** Приблизить к точке мира до масштаба, на котором доступны светофоры. */
+  zoomTo(wx: number, wy: number, scale: number): void {
+    this.viewport.setZoom(scale, true);
+    this.viewport.moveCenter(wx, wy);
   }
 
   /** Привести точку в центр экрана с заданным масштабом. */
