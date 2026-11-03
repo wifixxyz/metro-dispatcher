@@ -23,6 +23,11 @@ export interface StationLayout {
   half: number;
 }
 
+export interface LayoutOptions {
+  /** Реальные метры: длины платформ и перегонов в масштабе (для 3D). */
+  metric?: boolean;
+}
+
 export interface Layout {
   stations: StationLayout[];
   nodes: Map<string, Pt>;
@@ -62,30 +67,36 @@ function curve(a: Pt, via: Pt, b: Pt, n = 12): Pt[] {
 }
 
 /** Схема линии: станции слева направо, путь I сверху (на восток), путь II снизу. */
-export function buildLayout(cfg: LineConfig, graph: Graph): Layout {
+export function buildLayout(cfg: LineConfig, graph: Graph, opts: LayoutOptions = {}): Layout {
+  const metric = opts.metric === true;
+  const trackHalf = metric ? 5 : TRACK_HALF;
+  const bulge = metric ? 45 : BULGE;
   const nodes = new Map<string, Pt>();
   const stations: StationLayout[] = [];
   // Расстояние между станциями — по длине первого перегона между ними.
   let x = 0;
   for (let i = 0; i < cfg.stations.length; i++) {
     const st = cfg.stations[i]!;
+    const eI0 = st.stops[0] ? graph.edge(st.stops[0].edge) : undefined;
+    const half = metric && eI0 ? eI0.length / 2 : PLATFORM_HALF;
     if (i > 0) {
       const prevI = cfg.stations[i - 1]!.stops[0]?.edge;
       const thisI = st.stops[0]?.edge;
       const a = prevI ? graph.edge(prevI) : undefined;
       const b = thisI ? graph.edge(thisI) : undefined;
       const link = a && b ? graph.next(a.id).find((e) => e.to === b.from) : undefined;
-      x += Math.max(MIN_GAP + 2 * PLATFORM_HALF, (link?.length ?? 1500) * X_SCALE);
+      const prevHalf = stations[i - 1]?.half ?? PLATFORM_HALF;
+      x += metric ? prevHalf + (link?.length ?? 1500) + half : Math.max(MIN_GAP + 2 * PLATFORM_HALF, (link?.length ?? 1500) * X_SCALE);
     }
-    stations.push({ id: st.id, name: st.name, cx: x, platform: st.platform, half: PLATFORM_HALF });
+    stations.push({ id: st.id, name: st.name, cx: x, platform: st.platform, half });
     const [eI, eII] = st.stops.map((s) => graph.edge(s.edge));
     if (eI) {
-      nodes.set(eI.from, { x: x - PLATFORM_HALF, y: -TRACK_HALF });
-      nodes.set(eI.to, { x: x + PLATFORM_HALF, y: -TRACK_HALF });
+      nodes.set(eI.from, { x: x - half, y: -trackHalf });
+      nodes.set(eI.to, { x: x + half, y: -trackHalf });
     }
     if (eII) {
-      nodes.set(eII.from, { x: x + PLATFORM_HALF, y: TRACK_HALF });
-      nodes.set(eII.to, { x: x - PLATFORM_HALF, y: TRACK_HALF });
+      nodes.set(eII.from, { x: x + half, y: trackHalf });
+      nodes.set(eII.to, { x: x - half, y: trackHalf });
     }
   }
   const anchor = (a: { station: string; dx: number; dy: number }): Pt => {
@@ -106,7 +117,7 @@ export function buildLayout(cfg: LineConfig, graph: Graph): Layout {
     } else if (e.track === 'turn') {
       // Съезд оборота: дуга вправо у выхода пути I, влево у выхода пути II.
       const dir = a.y < 0 ? 1 : -1;
-      const via = { x: (a.x + b.x) / 2 + dir * BULGE, y: (a.y + b.y) / 2 };
+      const via = { x: (a.x + b.x) / 2 + dir * bulge, y: (a.y + b.y) / 2 };
       lines.set(e.id, makeLine(curve(a, via, b)));
     } else {
       lines.set(e.id, makeLine([a, b]));
@@ -119,7 +130,7 @@ export function buildLayout(cfg: LineConfig, graph: Graph): Layout {
       x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y);
     }
   }
-  return { stations, nodes, lines, bounds: { x0, y0, x1, y1 }, trackHalf: TRACK_HALF };
+  return { stations, nodes, lines, bounds: { x0, y0, x1, y1 }, trackHalf };
 }
 
 /** Точка линии на доле длины f ∈ [0,1] и направление (единичный вектор). */

@@ -490,3 +490,53 @@ body {
   font: 11px/1.4 ui-monospace, monospace;
   margin-bottom: 6px;
 }
+
+.hud {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: calc(64px + var(--safe-t));
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(20, 25, 37, 0.88);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.hud.show {
+  display: flex;
+}
+
+.hudtext {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+#app.v3d .zoom {
+  display: none;
+}
+
+#view3d {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+
+#app.v3d #view3d {
+  display: block;
+}
+
+#app.v3d #map {
+  visibility: hidden;
+}
+
+@media (min-width: 700px) {
+  .hud {
+    left: 50%;
+    right: auto;
+    width: 520px;
+    transform: translateX(-50%);
+  }
+}

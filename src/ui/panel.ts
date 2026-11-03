@@ -7,6 +7,8 @@ export interface PanelHandlers {
   onSettings(s: Settings): void;
   onNewShift(): void;
   onEditor(): void;
+  onView(): void;
+  onCam(kind: 'overview' | 'cab' | 'focus'): void;
 }
 
 const PALETTE = ['#de64a1', '#5ad19a', '#f2c94c', '#56b6f7', '#ff9f43', '#b48cf2', '#9bdc5a', '#ff6b6b'];
@@ -54,6 +56,11 @@ export class Panel {
   private readonly logBox = el('div', { className: 'log' });
   private readonly diag = el('div', { className: 'diag' });
   private readonly modeSelect = el('select', { className: 'mode' });
+  private viewBtn!: HTMLButtonElement;
+  private cabBtn!: HTMLButtonElement;
+  private hudRow!: HTMLElement;
+  private readonly hud = el('div', { className: 'hud' });
+  private readonly hudText = el('div', { className: 'hudtext' });
   private lastLog = -1;
   private lastText = '';
   private lastStats = '';
@@ -62,7 +69,7 @@ export class Panel {
   private readonly setBtns = new Map<keyof Settings, HTMLButtonElement>();
 
   constructor(
-    root: HTMLElement,
+    private readonly root: HTMLElement,
     game: Game,
     private readonly handlers: PanelHandlers,
     settings: Settings,
@@ -77,7 +84,18 @@ export class Panel {
     this.modeSelect.value = game.mode;
     this.modeSelect.addEventListener('change', () => handlers.onMode(this.modeSelect.value));
     const edit = button('✎', 'editor-open', () => handlers.onEditor(), 'Редактор линий');
-    top.append(title, this.modeSelect, edit);
+    this.viewBtn = button('3D', 'view-toggle', () => handlers.onView(), 'Переключить 2D-пульт и 3D-вид');
+    top.append(title, this.modeSelect, this.viewBtn, edit);
+    this.hud.dataset['testid'] = 'hud';
+    this.hudText.dataset['testid'] = 'hud-text';
+    this.hudRow = el('div', { className: 'row' });
+    this.cabBtn = button('Из кабины', 'cam-cab', () => handlers.onCam('cab'));
+    this.hudRow.append(
+      button('Обзор', 'cam-overview', () => handlers.onCam('overview')),
+      button('К поезду', 'cam-focus', () => handlers.onCam('focus')),
+      this.cabBtn,
+    );
+    this.hud.append(this.hudText, this.hudRow);
 
     const zoom = el('div', { className: 'zoom' });
     zoom.append(
@@ -142,7 +160,7 @@ export class Panel {
       this.logBox,
     );
 
-    root.append(top, zoom, this.toast, this.card, panel, this.sheet);
+    root.append(top, zoom, this.hud, this.toast, this.card, panel, this.sheet);
   }
 
   /** Короткое сообщение (в том числе объяснение отказа). */
@@ -166,6 +184,21 @@ export class Panel {
 
   hideCard(): void {
     this.card.classList.remove('show');
+  }
+
+  /** Переключить вид: в 3D скрываются кнопки масштаба 2D и показывается панель камеры. */
+  setView(v: '2d' | '3d'): void {
+    this.viewBtn.textContent = v === '3d' ? '2D' : '3D';
+    this.viewBtn.classList.toggle('on', v === '3d');
+    this.hud.classList.toggle('show', v === '3d');
+    this.root.classList.toggle('v3d', v === '3d');
+  }
+
+  setHud(text: string, hasTrain: boolean, cab: boolean): void {
+    this.hudText.textContent = text || 'Коснитесь поезда, чтобы выбрать его';
+    this.cabBtn.textContent = cab ? 'Выйти из кабины' : 'Из кабины';
+    this.cabBtn.disabled = !hasTrain && !cab;
+    (this.hudRow.children[1] as HTMLButtonElement).disabled = !hasTrain;
   }
 
   private paintSettings(): void {
